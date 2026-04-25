@@ -10,7 +10,6 @@ plugins/
 projects/
 session-env/
 session-logger.log
-session-logger.sh
 sessions/
 shell-snapshots/
 skills/
