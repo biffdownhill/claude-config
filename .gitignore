@@ -1,0 +1,49 @@
+# Claude Code internal runtime files — never tracked
+backups/
+cache/
+debug/
+file-history/
+history.jsonl
+paste-cache/
+plans/
+plugins/
+projects/
+session-env/
+session-logger.log
+session-logger.sh
+sessions/
+shell-snapshots/
+skills/
+statsig/
+statusline-command.sh
+tasks/
+telemetry/
+todos/
+
+# Real settings file — tracked separately per machine
+settings.json
+settings.json.bak
+
+# macOS
+.DS_Store
+
+# Secrets — never commit these
+*.key
+*.pem
+*.p12
+*.pfx
+*.cert
+*.crt
+.env
+.env.*
+*_secret*
+*_token*
+*credentials*
+
+# Only these paths are tracked:
+# CLAUDE.md
+# agents/
+# templates/
+# settings.template.json
+# bootstrap.sh
+# .gitignore
