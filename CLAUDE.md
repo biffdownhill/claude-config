@@ -71,3 +71,20 @@ vault-manager agent handles all vault interactions:
   always proposed, never imposed.
 
 Claude should never impose vault structure — read what exists and work within it.
+
+## Project tracking
+
+Projects may have a `<project-root>/.claude/pm.json` file declaring an active PM
+agent for ticket and epic management. The triage-orchestrator reads this file and
+invokes the named agent (e.g. `github-pm`) for Tier 2/3 work.
+
+- **Contract:** `~/.claude/contracts/pm.md` — defines the capability set every PM
+  agent implements (status vocabulary, approval gates, error categories).
+- **Implementations:** `~/.claude/agents/<backend>-pm.md` — currently `github-pm`
+  (GitHub Projects via the `gh` CLI).
+- **Setup:** `/pm:init` (forthcoming) creates `pm.json` and configures the backend.
+- **Adding a backend:** copy an existing `*-pm.md`, point it at the new tooling,
+  implement every contract operation.
+
+Projects without `pm.json` operate without tracking. Don't impose ticketing on
+projects that haven't asked for it.

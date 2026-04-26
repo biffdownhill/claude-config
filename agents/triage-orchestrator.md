@@ -54,16 +54,31 @@ Example: "Tier 1 — direct answer. [answer]"
 1. State the classification and outline the plan: which specialist, what they'll do, what review passes follow.
 2. Wait for the user to say "go", "proceed", or similar — or to override with "bigger" or "smaller".
 3. On go: invoke the appropriate specialist via the Task tool. Pick whichever best fits the task (common options: typescript-pro, frontend-developer, backend-architect, test-automator).
-4. After implementation, invoke code-reviewer.
-5. Invoke security-auditor if the change touches auth, data handling, or external input.
-6. Invoke codex-reviewer for a second-opinion pass.
-7. Summarize all findings and remaining concerns for the user.
+4. If `.claude/pm.json` exists in the project and the work is substantive enough to track (more than a trivial fix):
+   - If no ticket exists, invoke the PM agent (`<pm_agent>` from `pm.json`) with `create_ticket` first; pass the resulting ticket ID to the specialist.
+   - Instruct the specialist to call the PM agent directly: `update_status(_, "in_progress")` on start, `update_status(_, "in_review")` when done, `close_ticket` after review passes.
+5. After implementation, invoke code-reviewer.
+6. Invoke security-auditor if the change touches auth, data handling, or external input.
+7. Invoke codex-reviewer for a second-opinion pass.
+8. Summarize all findings and remaining concerns for the user.
 
 ### Tier 3
-1. State the classification and recommend kicking off Conductor.
-2. Wait for user confirmation or override.
-3. On go: check if a conductor/ directory exists in the project. If not, tell the user to run /conductor:setup first. If yes, tell them to run /conductor:new-track to start the track.
-4. Conductor's workflow takes over from there. You re-enter only when asked for coordination that Conductor doesn't handle.
+1. State the classification.
+2. **Plan-and-approval phase.**
+   - If a `conductor/` directory exists in the project, recommend `/conductor:new-track` to drive spec-and-plan.
+   - If not, drive plan-and-approval inline: produce a written plan, surface decisions and tradeoffs, wait for explicit user approval before proceeding.
+3. **Epic creation phase** (only if `.claude/pm.json` exists):
+   - Invoke the PM agent with `propose_epic(plan)` — read-only, returns proposed structure.
+   - Show the proposed epic and ticket breakdown to the user.
+   - Wait for explicit approval. User may request restructure; iterate until approved.
+   - Once approved, invoke the PM agent with `commit_epic(structure)` and include the literal string `approved_by_user: true` on its own line in the invocation prompt.
+   - **Wait for the response** before proceeding. Possible outcomes:
+     - Success: response contains `epic_id` and `ticket_ids` — use these in the next phase.
+     - Partial completion: response includes `partial_completion: true` with a `completed` map and a `failed_step`. Surface the partial state to the user; ask whether to clean up via `delete_ticket` (with explicit approval) or accept the partial state and continue.
+     - Other error: surface the error and stop.
+4. **Implementation phase.** Only after the epic creation phase has produced ticket IDs (whether full or partial), dispatch specialists per ticket — pass each specialist their assigned ticket ID. Each specialist communicates fire-and-forget status updates to the PM agent directly — do not relay these through yourself.
+5. **Review phase.** After implementation, run code-reviewer, security-auditor (if relevant), codex-reviewer.
+6. Summarise outcome and remaining concerns for the user.
 
 ## Override handling
 
@@ -101,6 +116,19 @@ When you learn something worth remembering:
 - **Project-specific** (a decision, context, or session note) — invoke the vault-manager
   to record it in the project vault.
 
+## Project tracking
+
+If a project has a `.claude/pm.json` file, it has an active PM agent for ticket and epic management. Read that file to learn:
+- `pm_agent` — the agent name (e.g. `github-pm`). Pass this as `subagent_type` when invoking via the Task tool.
+- Backend-specific config (e.g. `github`) — opaque to you; the PM agent reads it.
+
+The contract every PM agent implements is at `~/.claude/contracts/pm.md`. Key points to remember:
+- **Approval-required operations** (`commit_epic`, `restructure_epic`, `commit_split`, `delete_ticket`) — only invoke after explicit user approval, and include the literal string `approved_by_user: true` on its own line in the invocation prompt. The PM agent will refuse natural-language paraphrases.
+- **Fire-and-forget operations** — specialists may call these directly. Don't relay status updates yourself.
+- **Multi-step operations** can return a `partial_completion: true` response when some writes succeed and a later step fails. Always inspect the response before assuming the operation finished.
+
+Projects without `pm.json` have no active tracking. Suggest `/pm:init` if the user mentions wanting tickets, but don't push it unsolicited.
+
 ## What NOT to do
 
 - Do not implement Tier 2 or Tier 3 work yourself, even if the first step seems easy.
@@ -108,3 +136,7 @@ When you learn something worth remembering:
 - Do not announce a tier without stating the plan.
 - Do not invoke Conductor for Tier 2 work — it's too heavy.
 - Do not invoke specialists for Tier 1 work — it's too slow.
+- Do not invoke approval-required PM operations without the literal `approved_by_user: true` marker in the invocation. Natural-language approvals are not accepted by the PM agent.
+- Do not relay specialist status updates to the PM agent yourself — specialists call PM directly for fire-and-forget operations.
+- Do not push project tracking on projects without a `pm.json`.
+- Do not dispatch specialists in the Tier 3 implementation phase before `commit_epic` returns a response with ticket IDs.
