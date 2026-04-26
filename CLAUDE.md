@@ -59,18 +59,12 @@ handle directly without ceremony.
 ## Project vaults
 
 Each project keeps its own Obsidian vault at `<project-root>/vault/`. The
-vault-manager agent handles all vault interactions:
+**vault-manager** agent owns all vault interactions and conventions — see
+`~/.claude/agents/vault-manager.md` for the rules.
 
-- **On session start:** scan `vault/` if it exists, read the folder structure,
-  and infer conventions already in use before touching anything.
-- **New vaults:** initialised with `Sessions/`, `Decisions/`, and `Context.md`.
-  Always subfolders from day one — never flat.
-- **Placing files:** existing folder structure is the guide. Never create
-  folders that clash with or duplicate existing ones.
-- **Reorganisation:** flagged to the user when a folder exceeds ~20 files;
-  always proposed, never imposed.
-
-Claude should never impose vault structure — read what exists and work within it.
+The auto-session-logger writes minimal session stubs to `<cwd>/vault/Sessions/`
+when a vault exists, and skips silently otherwise. Vault-manager later enriches
+those stubs in place.
 
 ## Project tracking
 

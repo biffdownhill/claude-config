@@ -76,7 +76,7 @@ fi
 section "Checking agents"
 
 AGENTS_DIR="$CLAUDE_DIR/agents"
-for agent in triage-orchestrator codex-reviewer vault-manager; do
+for agent in triage-orchestrator codex-reviewer vault-manager code-reviewer security-auditor github-pm; do
   if [[ -f "$AGENTS_DIR/$agent.md" ]]; then
     ok "Agent present: $agent"
   else
@@ -89,7 +89,7 @@ done
 section "Checking templates"
 
 TEMPLATES_DIR="$CLAUDE_DIR/templates"
-for tmpl in decision session-log api-contract; do
+for tmpl in decision session-log api-contract pattern bug gotcha; do
   if [[ -f "$TEMPLATES_DIR/$tmpl.md" ]]; then
     ok "Template present: $tmpl.md"
   else
