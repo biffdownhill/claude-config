@@ -76,9 +76,25 @@ vault/
   Context.md
 ```
 
-`Context.md` gets minimal frontmatter and a single line: `# Project context — fill this in.`
+Other folders are created **lazily**, only when the first note of that kind is about to land. This keeps empty folders out of `git status` and keeps the structure honest about what the vault actually contains.
+
+When you initialise `Context.md`, do not write the placeholder string and walk away. Ask the user for a one-line description of the project (what it is, who uses it, anything a future agent should know in one sentence). If they answer, write that as the body. If they decline or skip, fall back to `# Project context — fill this in.` so the file isn't empty. Either way, the goal is: by the end of init, `Context.md` is either useful or has clearly opted out of being useful — never an unnoticed placeholder.
 
 Never create a flat vault (all files at root). Always use subfolders from day one.
+
+### Canonical folder names
+
+When the vault grows beyond the default, use these folder names so structure stays consistent across projects:
+
+- `Sessions/` — session logs (auto-generated stubs and enriched summaries)
+- `Decisions/` — decision notes (a choice was made between alternatives)
+- `Bugs/` — bug postmortems (a defect was found, root-caused, and recorded)
+- `Patterns/` — reusable patterns established for the project
+- `Gotchas/` — surprising behaviours documented for awareness
+- `ApiContracts/` — request/response shapes agreed with external systems
+- `Context.md` — single root file; do not create a `Context/` folder
+
+Match an existing folder if one is present (the user may have started with different names — respect what's there). Only fall back to these canonical names when introducing the type for the first time.
 
 ## Reading existing structure
 
@@ -106,14 +122,27 @@ If you are uncertain where a file belongs, state your reasoning and ask rather t
 **Search before creating.** Before writing any new note, run `Grep` with two or three keywords from the topic across `vault/`. If a relevant note already exists, update it instead of creating a duplicate. Only create a new note if the search returns nothing relevant.
 
 Always use a template from `~/.claude/templates/` when one matches the note type:
-- New decision → `decision.md`
-- New session log → `session-log.md`
-- New API contract → `api-contract.md`
-- New pattern → `pattern.md`
-- New bug postmortem → `bug.md`
-- New gotcha → `gotcha.md`
+- New decision → `decision.md` → `Decisions/`
+- New session log → `session-log.md` → `Sessions/`
+- New API contract → `api-contract.md` → `ApiContracts/`
+- New pattern → `pattern.md` → `Patterns/`
+- New bug postmortem → `bug.md` → `Bugs/`
+- New gotcha → `gotcha.md` → `Gotchas/`
 
 Replace `{{date}}` with today's date in `YYYY-MM-DD` format. Populate all frontmatter fields. Add relevant `[[wikilinks]]` to related notes discovered during the scan.
+
+### Picking the right template
+
+The categories overlap, especially for security and reliability findings. Use this in order — first match wins:
+
+1. **`bug.md`** → a defect was identified, root cause understood, fix applied or recommended. Even if the change touches security, if the framing is *"this was wrong, here's what was wrong, here's how we fixed it"*, it's a bug postmortem. Symptoms like "SQL injection in X", "secret leaked in Y", "race in Z" are bugs, not decisions.
+2. **`gotcha.md`** → surprising behaviour discovered (library quirk, language semantics, environment config) where there's no fix to make — just awareness needed. *"X looks like it does Y but actually does Z."*
+3. **`api-contract.md`** → a request/response shape was defined or agreed with an external system.
+4. **`pattern.md`** → a way of doing things established that should be followed elsewhere. Forward-looking (*"here's how to do X going forward"*), not backward-looking (*"here's what was broken"*).
+5. **`decision.md`** → a choice between alternatives was made. Has at least one rejected option that was tempting. If the only "alternatives" are *"do nothing"* or *"do the thing you obviously had to do"*, it's not a decision note.
+6. **`session-log.md`** → chronological summary of a session. Usually written by the auto-logger; you only write one manually if no logger fired.
+
+If a single finding genuinely fits two categories, pick the one a future reader would search for first. Bug postmortems and patterns are often paired — record the bug in `Bugs/`, then create a separate pattern note in `Patterns/` for "how to avoid this kind of issue going forward", and `[[wikilink]]` them together.
 
 ### Frontmatter requirements
 
