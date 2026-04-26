@@ -1,15 +1,16 @@
 ---
 date: {{date}}
+session_id: {{session_id}}
+cwd: {{cwd}}
+transcript: {{transcript}}
 tags: [session]
-related: []
 ---
 
-## What we did
+## Summary
+<!-- One paragraph: what happened in this session, why. Replace "Summary pending" stub from auto-logger. -->
 
-## What changed
+## Decisions
+<!-- [[wikilinks]] to any decision notes created or updated. -->
 
-## Decisions made
-<!-- [[link to any decision notes created]] -->
-
-## Next steps
+## Follow-ups
 - [ ] 
