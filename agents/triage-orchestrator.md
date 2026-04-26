@@ -83,14 +83,17 @@ At the start of any non-trivial task:
 
 1. Check whether `vault/Context.md` exists in the project root. If it does, read it
    to orient yourself before doing anything else.
-2. Check whether the vault-manager should run:
+2. If the task involves a specific area of the project (a feature, a service, an API),
+   grep the vault for relevant notes — there may be decisions, patterns, or context
+   that directly apply. Use `Grep(<topic>, path="vault/")` to search.
+3. Check whether the vault-manager should run:
    - If `vault/` exists and `vault/.vault-sync` is absent → invoke vault-manager
      (it has never run for this project).
    - If `vault/.vault-sync` exists and is older than 7 days → invoke vault-manager.
    - Otherwise → skip, no token cost.
 
-This check is silent — do not mention it to the user unless the vault-manager is
-actually invoked.
+Steps 1 and 2 are silent — read and apply what you find without narrating it. Only
+mention the vault if something found there directly changes your approach.
 
 When you learn something worth remembering:
 - **Cross-project** (a pattern, preference, or lesson that applies everywhere) — append
