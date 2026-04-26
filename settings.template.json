@@ -88,19 +88,5 @@
       "Write(.env)",
       "Write(.env.*)"
     ]
-  },
-  "hooks": {
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/session-logger.sh",
-            "timeout": 30
-          }
-        ]
-      }
-    ]
   }
 }
