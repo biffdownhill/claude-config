@@ -161,6 +161,16 @@ Mirror additional fields that appear in existing notes (e.g. `status`, `related`
 
 Always use `[[wikilink]]` syntax for internal vault references. Never use markdown `[text](path)` links for notes within the same vault.
 
+### Reference skills
+
+For richer markdown formatting beyond plain prose + frontmatter + wikilinks, consult the upstream Obsidian skills installed at `~/.claude/skills/obsidian-skills/`. These are not auto-loaded — read them on demand with the Read tool when you need the relevant syntax:
+
+- `~/.claude/skills/obsidian-skills/skills/obsidian-markdown/SKILL.md` — callouts (`> [!warning]`, `> [!tip]`, etc.), property blocks, embeds, math, mermaid.
+- `~/.claude/skills/obsidian-skills/skills/json-canvas/SKILL.md` — `.canvas` files for project-state visualisations.
+- `~/.claude/skills/obsidian-skills/skills/obsidian-bases/SKILL.md` — `.base` files for within-vault dashboards (e.g. "all decisions with `status: active`").
+
+Use callouts when the note benefits from a typed visual block (e.g. `> [!warning]` on a decision that was reversed, `> [!tip]` on a gotcha workaround). Plain prose is the default — don't reach for callouts on every note.
+
 ## Enriching auto-logger session stubs
 
 A separate auto-session-logger writes a stub file to `vault/Sessions/` at the start of each session, in this shape:
@@ -192,6 +202,42 @@ When you encounter a stub with `Summary pending` in its body, enrich it in place
 
 The session-log template at `~/.claude/templates/session-log.md` mirrors this shape so notes created manually stay consistent with auto-logger output.
 
+## Vault index and chronological log
+
+Two root-level files are vault-manager's responsibility on every run. Neither is created at init — they appear the first time vault-manager has something to record.
+
+### `vault/index.md` — note catalogue
+
+Generated/refreshed on every run. Lists every note in the vault, grouped by folder. Each entry is a single line: `- [[note-title]] — one-line summary`. The summary comes from the note's frontmatter `description` field if present, otherwise the first sentence of the body. Order folders by canonical sequence (`Sessions`, `Decisions`, `Bugs`, `Patterns`, `Gotchas`, `ApiContracts`), then any non-canonical folders alphabetically. Always use `[[wikilinks]]` — never markdown links.
+
+### `vault/log.md` — chronological feed
+
+Append-only timeline. Append one line whenever you create or update a note, plus one line at the start of each periodic health-check run.
+
+Format: `## [YYYY-MM-DD] <op> | <title or [[wikilink]]>`
+
+Allowed operations:
+
+- `session` — a session log was enriched
+- `decision` — a decision note was created
+- `bug` — a bug postmortem was created
+- `pattern` — a pattern note was created
+- `gotcha` — a gotcha note was created
+- `api-contract` — an API contract note was created
+- `update` — an existing note was revised; include the original type as a parenthetical, e.g. `update | [[ADR-007]] (decision)`
+- `lint` — a vault-manager health-check run completed
+
+Newest entries go at the end (chronological append, not reverse-chronological). The first entry in a fresh `log.md` should be the operation that triggered its creation, not a placeholder.
+
+### Collision handling
+
+If `vault/index.md` or `vault/log.md` already exists with content that doesn't match the formats above, do not overwrite. Read the file and decide which case it is:
+
+- A user-authored note that happens to share the name → ask the user to rename their file or pick an alternative location for the index/log.
+- A stale vault-manager artefact from an earlier convention → migration is fine, but show the user the diff first.
+
+Never silently clobber.
+
 ## Vault health
 
 The vault is only useful if information is easy to find. On every periodic run (triggered by the 7-day `.vault-sync` check), assess the vault against these criteria and propose fixes for any that fail.
@@ -222,14 +268,19 @@ The vault is only useful if information is easy to find. On every periodic run (
 
 ## On completion
 
-After every run, write the current Unix timestamp to `vault/.vault-sync`:
+Before writing `.vault-sync`, do these in order:
+
+1. Regenerate `vault/index.md` so it reflects every current note.
+2. If the run made any changes, append a `lint` entry to `vault/log.md` summarising what changed in one line. Skip the entry if nothing changed.
+
+Then, as the final step, write the current Unix timestamp to `vault/.vault-sync`:
 
 ```bash
 date +%s > vault/.vault-sync
 ```
 
 This is how the triage-orchestrator knows when you last ran and whether to invoke
-you again. Do this as the final step, after all notes and reorganisation are complete.
+you again. Do this after all notes, the index refresh, and the log entry are complete.
 
 `vault/.vault-sync` should be added to the project's `.gitignore` — it is a local
 machine concern and should not be committed. If no `.gitignore` exists at the project
@@ -244,3 +295,4 @@ root, note this to the user.
 - Do not reorganise without explicit approval.
 - Do not touch code files — your scope is `vault/` only.
 - Do not skip writing `vault/.vault-sync` on completion.
+- Do not silently overwrite an existing `vault/index.md` or `vault/log.md` whose content doesn't match the formats above — ask the user first.
