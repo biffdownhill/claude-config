@@ -49,6 +49,13 @@ override these when they conflict.
 <!-- Cross-project lessons: pitfalls encountered, approaches that worked -->
 <!-- e.g. "Drizzle schema changes require explicit migration generation step." -->
 
+## Frameworks evaluated
+
+Decisions about external frameworks I considered adopting but ultimately didn't, so future-me can find the reasoning instead of re-evaluating from scratch. Full evaluation: `~/.claude/plans/i-want-you-to-calm-reddy.md` (2026-04-28).
+
+- **Karpathy `llm-council` (multi-model deliberation)** — not adopted. Three-stage chairman synthesis is genuinely useful for open-ended judgement (essay quality, "library A vs B"), but for code review it adds noise — code has ground truth and I want raw reviewer reports, not a synthesised opinion. The existing `code-reviewer` + `codex-reviewer` + `security-auditor` pipeline already covers multi-perspective review at the right cost. **Revisit only** if Tier 3 architecture decisions routinely produce conflicting reviewer verdicts I can't arbitrate, or evaluation tasks become common enough that confirmation-bias mitigation is worth the cost. Implementation, if it ever happens, is *not* the upstream web app — it's a small `council-judge` agent that fans plans out via OpenRouter and returns rankings (no chairman).
+- **Karpathy "LLM Wiki" pattern (Obsidian as a research wiki)** — not adopted wholesale. The vault-manager system is more rigorous than the gist (typed templates, mandatory frontmatter, lazy folders, grep-before-create, 7-day health checks). Borrowed only `index.md` (note catalogue) and `log.md` (chronological feed) into vault-manager. The "ingest external research sources" framing is a different problem domain — the vault is a project memory, not a literature wiki.
+
 ## Orchestration
 
 If you are in a plain Claude session and the request is non-trivial, suggest
