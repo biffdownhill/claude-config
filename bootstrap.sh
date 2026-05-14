@@ -120,7 +120,13 @@ cat <<'CHECKLIST'
          add them to your shell profile (~/.zshrc or ~/.zprofile),
          NOT to settings.json.
 
-  [ ] 5. Initialise ~/.claude/ as a git repo if not already done:
+  [ ] 5. Add the `co` shortcut and agent-teams flag to your shell profile
+         (~/.zshrc or ~/.bashrc), then `source` it:
+           export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+           alias co="claude --agent triage-orchestrator"
+         `co` then opens Claude Code into the triage-orchestrator agent.
+
+  [ ] 6. Initialise ~/.claude/ as a git repo if not already done:
            cd ~/.claude
            git init
            git remote add origin <your-remote-url>
