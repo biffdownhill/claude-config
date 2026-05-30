@@ -76,7 +76,7 @@ vault/
   Context.md
 ```
 
-Other folders are created **lazily**, only when the first note of that kind is about to land. This keeps empty folders out of `git status` and keeps the structure honest about what the vault actually contains.
+Other folders are created **lazily**, only when the first note of that kind is about to land. This keeps empty folders out of `git status` and keeps the structure honest about what the vault actually contains. When a folder gets its first note, also create its `_<Folder>.md` index (see "Folder indexes and chronological log" below).
 
 When you initialise `Context.md`, do not write the placeholder string and walk away. Ask the user for a one-line description of the project (what it is, who uses it, anything a future agent should know in one sentence). If they answer, write that as the body. If they decline or skip, fall back to `# Project context — fill this in.` so the file isn't empty. Either way, the goal is: by the end of init, `Context.md` is either useful or has clearly opted out of being useful — never an unnoticed placeholder.
 
@@ -128,6 +128,7 @@ Always use a template from `~/.claude/templates/` when one matches the note type
 - New pattern → `pattern.md` → `Patterns/`
 - New bug postmortem → `bug.md` → `Bugs/`
 - New gotcha → `gotcha.md` → `Gotchas/`
+- New folder index → `folder-index.md` → as `_<Folder>.md` at the top of that folder
 
 Replace `{{date}}` with today's date in `YYYY-MM-DD` format. Populate all frontmatter fields. Add relevant `[[wikilinks]]` to related notes discovered during the scan.
 
@@ -202,13 +203,19 @@ When you encounter a stub with `Summary pending` in its body, enrich it in place
 
 The session-log template at `~/.claude/templates/session-log.md` mirrors this shape so notes created manually stay consistent with auto-logger output.
 
-## Vault index and chronological log
+## Folder indexes and chronological log
 
-Two root-level files are vault-manager's responsibility on every run. Neither is created at init — they appear the first time vault-manager has something to record.
+These are vault-manager's responsibility on every run. None are created at init — each appears the first time its folder has a note to record.
 
-### `vault/index.md` — note catalogue
+### `_<Folder>.md` — per-folder index
 
-Generated/refreshed on every run. Lists every note in the vault, grouped by folder. Each entry is a single line: `- [[note-title]] — one-line summary`. The summary comes from the note's frontmatter `description` field if present, otherwise the first sentence of the body. Order folders by canonical sequence (`Sessions`, `Decisions`, `Bugs`, `Patterns`, `Gotchas`, `ApiContracts`), then any non-canonical folders alphabetically. Always use `[[wikilinks]]` — never markdown links.
+Every folder carries its own index note named `_<Folder>.md` (e.g. `Decisions/_Decisions.md`, `Bugs/_Bugs.md`). The `_` prefix sorts it to the top of the folder so it's the first thing seen when browsing — it's the quick context reference for that folder. Use the `folder-index.md` template.
+
+- **Frontmatter:** `tags: [index]` and `aliases: [<Folder>]` (the alias lets `[[Decisions]]`-style links resolve to the index even though the file is `_Decisions.md`). No `status` field.
+- **Title:** `# <Folder>` — the folder name, without the underscore.
+- **Body:** a table of every note in that folder, one row each: `[[wikilink]]`, status, and a one-line summary. The summary comes from the note's frontmatter `description` if present, otherwise the first sentence of the body.
+- Regenerate/refresh on every run so each index reflects its folder's current contents. When you add, remove, rename, or change the status of a note, update that folder's `_<Folder>.md` in the same pass.
+- The **vault root's index** is the project dashboard — `Context.md` by default, or a project-specific `Home.md` if one already serves that role. Do not create a `_`-prefixed index at the vault root; the dashboard is the root index. Subfolders always get `_<Folder>.md`.
 
 ### `vault/log.md` — chronological feed
 
@@ -231,7 +238,7 @@ Newest entries go at the end (chronological append, not reverse-chronological). 
 
 ### Collision handling
 
-If `vault/index.md` or `vault/log.md` already exists with content that doesn't match the formats above, do not overwrite. Read the file and decide which case it is:
+If a `_<Folder>.md` index or `vault/log.md` already exists with content that doesn't match the formats above, do not overwrite. Read the file and decide which case it is:
 
 - A user-authored note that happens to share the name → ask the user to rename their file or pick an alternative location for the index/log.
 - A stale vault-manager artefact from an earlier convention → migration is fine, but show the user the diff first.
@@ -256,6 +263,7 @@ The vault is only useful if information is easy to find. On every periodic run (
 - A note title is vague or generic (e.g. `Notes.md`, `Stuff.md`) — rename it to be descriptive
 - A decision note has `status: active` but the decision has since changed — update it
 - Wikilinks point to notes that no longer exist — fix or remove them
+- A folder has notes but no `_<Folder>.md` index, or its index is stale/out of sync with the folder's contents — create or refresh it
 - `Context.md` is still the placeholder text — flag it to the user
 
 ### How to handle issues found
@@ -270,7 +278,7 @@ The vault is only useful if information is easy to find. On every periodic run (
 
 Before writing `.vault-sync`, do these in order:
 
-1. Regenerate `vault/index.md` so it reflects every current note.
+1. Regenerate each folder's `_<Folder>.md` index so every one reflects its folder's current contents.
 2. If the run made any changes, append a `lint` entry to `vault/log.md` summarising what changed in one line. Skip the entry if nothing changed.
 
 Then, as the final step, write the current Unix timestamp to `vault/.vault-sync`:
@@ -295,4 +303,5 @@ root, note this to the user.
 - Do not reorganise without explicit approval.
 - Do not touch code files — your scope is `vault/` only.
 - Do not skip writing `vault/.vault-sync` on completion.
-- Do not silently overwrite an existing `vault/index.md` or `vault/log.md` whose content doesn't match the formats above — ask the user first.
+- Do not silently overwrite an existing `_<Folder>.md` index or `vault/log.md` whose content doesn't match the formats above — ask the user first.
+- Do not create a `_`-prefixed index at the vault root — the project dashboard (`Context.md` / `Home.md`) is the root index.
