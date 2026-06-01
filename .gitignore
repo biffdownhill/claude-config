@@ -1,9 +1,12 @@
 # Claude Code internal runtime files — never tracked
+.last-cleanup
+.obsidian/
 backups/
 cache/
 debug/
 file-history/
 history.jsonl
+ide/
 paste-cache/
 plans/
 plugins/
