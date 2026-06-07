@@ -49,6 +49,52 @@ override these when they conflict.
 <!-- Cross-project lessons: pitfalls encountered, approaches that worked -->
 <!-- e.g. "Drizzle schema changes require explicit migration generation step." -->
 
+- A fresh `git worktree` does not copy gitignored files (`node_modules/`, `.env`,
+  `.claude/`). Run `npm ci` (or the project's install) in a new worktree before any
+  tooling that needs deps present — e.g. `npx expo install` requires the `expo`
+  module to detect the SDK. Also copy/recreate gitignored local config the task
+  needs (e.g. `.claude/pm.json`) into the worktree.
+- **bun gotchas (from the ShelfLife npm→bun migration):**
+  - bun ≥1.2 writes a **text** `bun.lock` (lockfileVersion 1), not the old binary
+    `bun.lockb`. Don't expect a `.lockb`. Railway Nixpacks needs **≥1.36.0** to detect
+    the text format (older Nixpacks only read `bun.lockb`); EAS Build and
+    `oven-sh/setup-bun` detect it fine.
+  - `bun test` runs bun's **native** test runner and bypasses the `"test"` package.json
+    script — use `bun run test` to invoke vitest/jest. Any script whose name collides
+    with a bun builtin needs `bun run`, not bare `bun`.
+  - bun **does not run dependency postinstall scripts** unless the package is listed in
+    `"trustedDependencies"`. After `bun install`, check the "Blocked N postinstall"
+    output and trust only deps a CI/runtime step actually exercises (e.g. a NAPI binding
+    a linter loads); leave the rest blocked if they have a JS fallback.
+  - EAS Build and Railway Nixpacks auto-detect the package manager from the lockfile —
+    deleting `package-lock.json` and committing `bun.lock` is enough; no config flag
+    needed. The `packageManager` field is a secondary signal.
+  - In CI, keep `actions/setup-node` (for the Node version pin some tooling resolves
+    against) **alongside** `oven-sh/setup-bun` — bun runs the JS but doesn't replace Node.
+- **Expo/RN runtime config & environment switching (from ShelfLife #27 app-architecture):**
+  - No mechanism reliably relaunches the **OS process** cross-platform: `expo-updates`
+    `reloadAsync`, `react-native-restart`, and `DevSettings.reload()` all reload the JS
+    bundle, not the native process, and iOS has **no public self-kill API**. So any
+    "switch environment/config at runtime" feature must be a JS-tree remount **plus a
+    cold-start seam** for native-init-once SDKs (Sentry's native crash handler, etc.) that
+    genuinely cannot re-init in-process. Model it with two persisted fields — `activeEnv`
+    (running now) and `pendingEnv` (promoted on next cold launch) — and a per-module
+    capability flag (`runtime` vs `cold-start`); never hot-swap live native singletons or
+    silently pin them to a build-default env (both are debugging traps).
+  - `app.config.ts` should be the **single** reader of `process.env`; runtime code reads
+    resolved values from `expo-constants` (`Constants.expoConfig.extra`). Expo passes the
+    static `app.json` into `app.config.ts` as `ConfigContext.config` automatically — layer
+    dynamic values on top, no manual import. Verify with `expo config --json`.
+  - Multi-env safety is best enforced by **omission at build time** (a public/prod build
+    never receives the non-prod env vars, so they can't be bundled), with a zod schema as a
+    second guard. Validate env values as **grouped per-env objects** (URL+key as a pair) and
+    check a non-secret **project-ref sentinel** so one env can't be pointed at another's
+    backend. Reject secret-prefixed keys (`sb_secret_…`) at **build time**, not just at
+    launch, so a secret never compiles into the binary.
+  - An unstable inline callback in a React `useMemo`/`useCallback` dependency array
+    silently busts the memo with **no type or lint signal** — wrap callbacks passed as memo
+    deps in `useCallback` with stable deps (e.g. a `useState` setter).
+
 ## Frameworks evaluated
 
 Decisions about external frameworks I considered adopting but ultimately didn't, so future-me can find the reasoning instead of re-evaluating from scratch. Full evaluation: `~/.claude/plans/i-want-you-to-calm-reddy.md` (2026-04-28).
@@ -72,6 +118,30 @@ Each project keeps its own Obsidian vault at `<project-root>/vault/`. The
 The auto-session-logger writes minimal session stubs to `<cwd>/vault/Sessions/`
 when a vault exists, and skips silently otherwise. Vault-manager later enriches
 those stubs in place.
+
+**Ambient recall.** Vault notes surface automatically, with no conscious "search
+the vault" step:
+- A global `PreToolUse` hook (`~/.claude/hooks/vault-recall.py`) fires before
+  `Edit/MultiEdit/Write/NotebookEdit/Bash`. It reads `vault/.recall-map.json` and
+  injects a `📓` reminder with the note(s) whose `files:` glob matches the file
+  being edited (or whose `area` matches an opt-in Bash trigger). Precision-first:
+  ≤2 notes, silent on weak matches. **When a `📓` note appears, read it before
+  proceeding** — it's flagging a past mistake.
+- A `SessionStart` hook regenerates the lookup map + `vault/_registry.md` (the
+  human-readable catalogue) via `~/.claude/scripts/vault-recall-build.py`. The
+  recall hook also self-heals a stale map mid-session.
+- Both no-op silently in projects with no `vault/`, so this needs **zero per-project
+  setup** — vault-manager just adds the `areas`/`files` frontmatter and a short
+  `CLAUDE.md` vault stanza when a vault exists. Schema + ownership: vault-manager.
+- `vault/_registry.md` is committed; `vault/.recall-map.json` (rebuildable) and
+  `vault/.recall-log.jsonl` (injection log for the precision check) are gitignored.
+
+**Vault notes travel with their PR.** When vault updates come out of work that's
+going into a PR (a feature, fix, refactor), commit those `vault/` changes onto the
+same branch so they land in the same PR as the code. The PR should carry both the
+work and the context that goes with it — they go hand in hand, not in separate
+commits or separate PRs. Stage vault files in their own commit within the branch
+(e.g. `docs(vault): …`) to keep the diff readable, but keep them on the branch.
 
 ## Project tracking
 

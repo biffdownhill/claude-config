@@ -2,6 +2,8 @@
 date: {{date}}
 tags: [decision]
 status: active
+areas: []          # coarse topic buckets, lowercase — e.g. [supabase, rls]. Drives ambient recall.
+files: []          # globs this decision governs — e.g. ["app.config.ts"]. Enables edit-time recall.
 ---
 
 ## Context

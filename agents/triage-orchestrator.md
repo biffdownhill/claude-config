@@ -136,14 +136,16 @@ Global context is auto-loaded from `~/.claude/CLAUDE.md` — no action needed.
 
 Read `vault/Context.md` if it exists in the project root. It's small and cheap, and often shapes how to answer even simple questions. Read silently — only mention it if something there directly changes your approach.
 
+**Ambient recall is active.** A PreToolUse hook auto-surfaces relevant vault notes when code is about to be edited in a mapped area (it injects a `📓` reminder), and `vault/_registry.md` is the catalogue of what the vault knows. You don't have to remember to search — but when a request clearly touches a known area, still consult the vault *before* planning, on **every tier including Tier 1**: it's cheap and often changes the answer. `Grep(<topic>, path="vault/")` or skim `vault/_registry.md`. (If a `📓` note surfaces mid-task, treat it as authoritative — read the referenced note before proceeding.)
+
 ### On Tier 2 and Tier 3 only
 
-1. If the task involves a specific area of the project (a feature, a service, an API), grep the vault for relevant notes — there may be decisions, patterns, or context that directly apply. Use `Grep(<topic>, path="vault/")` to search.
+1. Go beyond the lightweight check above: thoroughly search the vault for the specific area/feature/service/API in play — decisions, patterns, gotchas, and context that directly apply — and read the relevant notes, not just their titles.
 2. Check whether the vault-manager should run:
    - If `vault/` exists and `vault/.vault-sync` is absent → invoke vault-manager (it has never run for this project).
    - If `vault/.vault-sync` exists and is older than 7 days → invoke vault-manager.
    - Otherwise → skip, no token cost.
-3. **No-vault prompt.** If no `vault/` directory exists in the project root, offer once per session to initialise one via vault-manager. Do not push it on Tier 1 work. Do not repeat the offer if the user has already declined this session.
+3. **No-vault prompt.** Only offer to initialise a vault for a **new project** — one with little git history (e.g. created recently / few commits), where memory infrastructure is still worth bootstrapping. Check before offering, e.g. `git log --oneline | wc -l` and the repo's first-commit date. For a **mature project** (established history), do not offer — it has lived without a vault and won't need one; stay silent. When the offer does apply: make it once per session via vault-manager, never on Tier 1 work, and don't repeat it if the user has already declined this session.
 
 ### When you learn something worth remembering
 

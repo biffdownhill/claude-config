@@ -2,6 +2,8 @@
 date: {{date}}
 tags: [pattern]
 status: active
+areas: []          # coarse topic buckets, lowercase — e.g. [supabase, rls]. Drives ambient recall.
+files: []          # globs this note applies to — e.g. ["src/components/**"]. Enables edit-time recall.
 ---
 
 ## Context

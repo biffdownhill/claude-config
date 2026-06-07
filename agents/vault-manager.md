@@ -134,6 +134,10 @@ Always use a template from `~/.claude/templates/` when one matches the note type
 
 Replace `{{date}}` with today's date in `YYYY-MM-DD` format. Populate all frontmatter fields. Add relevant `[[wikilinks]]` to related notes discovered during the scan.
 
+### Inline density check (after every note you add)
+
+After writing a note, count the `.md` files in its destination folder (excluding the `_<Folder>.md` index). If the count **reaches or exceeds ~20 and the folder has no subfolders**, flag it to the user in that same run's response — e.g. "`Gotchas` now holds 21 notes with no subfolders; consider a subfolder split before it grows further." Do **not** reorganise automatically mid-session: a structural move mixed into a content-recording run makes commits noisy. Just surface the warning so the split can be scheduled as a standalone pass. This check is what stops an overflowing folder from sitting unnoticed until the next 7-day periodic run.
+
 ### Picking the right template
 
 The categories overlap, especially for security and reliability findings. Use this in order — first match wins:
@@ -276,12 +280,52 @@ The vault is only useful if information is easy to find. On every periodic run (
 4. Propose needs-approval changes with a concrete before/after and wait for confirmation.
 5. After all changes, update any affected wikilinks.
 
+## Ambient recall (frontmatter + generated lookup)
+
+The vault feeds an ambient-recall system: a PreToolUse hook (`~/.claude/hooks/vault-recall.py`) automatically surfaces relevant notes when code is about to be edited or a triggering command is run, with no conscious search step. This only works if note frontmatter carries the right structured fields — which **you own**. Never hand-author the generated artefacts.
+
+### Frontmatter schema
+
+In addition to the existing `tags` / `status` / `date`, maintain:
+
+- `areas:` — coarse topic buckets, lowercase (e.g. `[supabase, rls]`). **On every note.** Drives broad matching and the registry.
+- `files:` — glob(s) of source paths the note applies to (e.g. `["server/**/delete*.ts", "supabase/migrations/**"]`). **Only on notes tied to specific code** — this is the biggest lever on edit-time recall. Omit for general notes. Keep globs current when code moves; stale globs are the main failure mode.
+- `symptoms:` — short observable-symptom phrases (e.g. `["DELETE returns 200", "0 rows removed"]`). Add when a note describes a debuggable failure.
+- `failure_mode:` — optional one-slug label (e.g. `silent-data-loss`).
+- `frameworks:` — optional (e.g. `[postgrest, expo-router]`).
+
+Infer these from the note's content and existing tags — do not ask the user to write them. When introducing the schema to a vault that predates it, do a one-pass migration: add `areas` to every note and `files`/`symptoms` to the high-value, code-specific ones. Treat it as a bulk change — show the plan and get approval, like a reorganisation.
+
+### Generated artefacts (never hand-edit)
+
+- `vault/_registry.md` — human-readable catalogue. **Commit it.**
+- `vault/.recall-map.json` — hook lookup table. **Gitignore it** (rebuildable from source).
+
+Both are produced by `~/.claude/scripts/vault-recall-build.py`. A SessionStart hook rebuilds them and the recall hook self-heals a stale map, but regenerate explicitly at the end of any run that changed notes so the committed `_registry.md` is current (see On completion).
+
+### Optional Bash triggers
+
+Bash-command recall is **opt-in per project** to avoid noise: it fires only on patterns in `vault/.recall-triggers.json` (a JSON array of `{"pattern": "...", "area": "..."}`). Populate sparingly with high-signal, low-ambiguity patterns (e.g. `supabase migration`, `gradlew`) mapping to an `area` that notes carry. Absent file = no Bash recall.
+
+### Precision check (periodic)
+
+The recall hook appends one line per injection to `vault/.recall-log.jsonl` (gitignored) — each entry records the tool, the target file/command, and which notes were surfaced. On a periodic run, sample recent entries and flag false positives (a note surfaced on an unrelated file). Precision loss — not recall loss — is what erodes trust; tighten or remove the offending `files` glob.
+
+### Project CLAUDE.md stanza
+
+When setting up or maintaining a vault, ensure the project's `CLAUDE.md` carries a short (~12-line) vault stanza: that a vault exists, the top-level `areas` it covers, and an instruction to consult it (read `vault/_registry.md` or grep `vault/`) before working in those areas. This is the always-on awareness layer — keep it compact.
+
 ## On completion
 
 Before writing `.vault-sync`, do these in order:
 
 1. Regenerate each folder's `_<Folder>.md` index so every one reflects its folder's current contents.
-2. If the run made any changes, append a `lint` entry to `vault/log.md` summarising what changed in one line. Skip the entry if nothing changed.
+2. If the run touched any notes' content or frontmatter, regenerate the recall artefacts:
+   ```bash
+   python3 "$HOME/.claude/scripts/vault-recall-build.py"   # run from the project root, or with CLAUDE_PROJECT_DIR set
+   ```
+   This refreshes `vault/_registry.md` (commit) and `vault/.recall-map.json` (gitignored).
+3. If the run made any changes, append a `lint` entry to `vault/log.md` summarising what changed in one line. Skip the entry if nothing changed.
 
 Then, as the final step, write the current Unix timestamp to `vault/.vault-sync`:
 
@@ -292,9 +336,10 @@ date +%s > vault/.vault-sync
 This is how the triage-orchestrator knows when you last ran and whether to invoke
 you again. Do this after all notes, the index refresh, and the log entry are complete.
 
-`vault/.vault-sync` should be added to the project's `.gitignore` — it is a local
-machine concern and should not be committed. If no `.gitignore` exists at the project
-root, note this to the user.
+`vault/.vault-sync`, `vault/.recall-map.json`, and `vault/.recall-log.jsonl` should all
+be added to the project's `.gitignore` — they are local/rebuildable/log machine concerns
+and should not be committed. (`vault/_registry.md` **is** committed.) If no `.gitignore`
+exists at the project root, note this to the user.
 
 ## What NOT to do
 
@@ -307,3 +352,4 @@ root, note this to the user.
 - Do not skip writing `vault/.vault-sync` on completion.
 - Do not silently overwrite an existing `_<Folder>.md` index or `vault/log.md` whose content doesn't match the formats above — ask the user first.
 - Do not create a `_`-prefixed index at the vault root — the project dashboard (`Context.md` / `Home.md`) is the root index.
+- Do not hand-edit `vault/_registry.md` or `vault/.recall-map.json` — they are generated by `vault-recall-build.py`. Change note frontmatter and regenerate instead.
