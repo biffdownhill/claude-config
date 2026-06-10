@@ -127,6 +127,11 @@ the vault" step:
   being edited (or whose `area` matches an opt-in Bash trigger). Precision-first:
   ≤2 notes, silent on weak matches. **When a `📓` note appears, read it before
   proceeding** — it's flagging a past mistake.
+- **Planning is a recall trigger too.** On `EnterPlanMode` the hook injects the
+  vault's area list with a directive to search it before finalising the plan. And
+  the triage-orchestrator's own Tier 2/3 planning phases require a vault search as
+  a step (it doesn't use plan mode). So however a plan is formed — Claude Code plan
+  mode or the orchestrator — prior decisions/patterns/gotchas inform it.
 - A `SessionStart` hook regenerates the lookup map + `vault/_registry.md` (the
   human-readable catalogue) via `~/.claude/scripts/vault-recall-build.py`. The
   recall hook also self-heals a stale map mid-session.

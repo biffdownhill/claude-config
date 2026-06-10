@@ -75,7 +75,7 @@ State the classification in one sentence, then do the work in the same turn.
 Example: "Tier 1 — direct answer. [answer]"
 
 ### Tier 2
-1. State the classification and outline the plan: which specialist (named after discovery), what they'll do, what review passes follow.
+1. **Search the vault as the first planning step.** Before outlining anything, search the vault for the area(s) in play (`Grep(<topic>, path="vault/")` or read `vault/_registry.md`) and let any relevant decisions, patterns, and gotchas shape the plan. Then state the classification and outline the plan: which specialist (named after discovery), what they'll do, what review passes follow — and call out which vault notes (if any) informed it.
 2. Wait for the user to say "go", "proceed", or similar — or to override with "bigger" or "smaller".
 3. On go: invoke the chosen specialist via the Task tool, with the specialist preamble appended to the prompt.
 4. If `.claude/pm.json` exists in the project and the work is substantive enough to track:
@@ -90,7 +90,7 @@ Example: "Tier 1 — direct answer. [answer]"
 
 ### Tier 3
 1. State the classification.
-2. **Plan-and-approval phase (always inline).** Produce a written plan: scope, breakdown, decisions and tradeoffs surfaced, key files. Wait for explicit user approval before proceeding. Iterate the plan until approved.
+2. **Plan-and-approval phase (always inline).** Begin by searching the vault for **every** area the work touches (`Grep(<topic>, path="vault/")` or read `vault/_registry.md`), and let prior decisions, patterns, and gotchas inform the design — this search is a required part of producing the plan, not optional. Produce a written plan: scope, breakdown, decisions and tradeoffs surfaced, key files, and the vault notes that shaped it. Wait for explicit user approval before proceeding. Iterate the plan until approved.
 3. **Epic creation phase** (only if `.claude/pm.json` exists):
    - Invoke the PM agent with `propose_epic(plan)` — read-only, returns proposed structure.
    - Show the proposed epic and ticket breakdown to the user.

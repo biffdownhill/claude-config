@@ -104,12 +104,24 @@ def main() -> int:
     try:
         data = json.loads(sys.stdin.read() or "{}")
         tool = data.get("tool_name", "")
-        if tool not in ("Edit", "MultiEdit", "Write", "NotebookEdit", "Bash"):
+        if tool not in ("Edit", "MultiEdit", "Write", "NotebookEdit", "Bash", "EnterPlanMode"):
             return 0
         root = root_from(data)
         vault = root / "vault"
         rmap = fresh_map(vault)
         if not rmap:
+            return 0
+
+        if tool == "EnterPlanMode":                    # planning — nudge a vault search
+            areas = sorted(rmap.get("by_area", {}).keys())
+            if not areas:
+                return 0
+            ctx = ("📓 This project has a knowledge vault covering: " + ", ".join(areas)
+                   + ". Search it as part of planning — read vault/_registry.md or grep vault/ "
+                   "for prior decisions, patterns, and gotchas in the areas this plan touches, "
+                   "and fold them in before finalising.")
+            print(json.dumps({"hookSpecificOutput": {
+                "hookEventName": "PreToolUse", "additionalContext": ctx}}))
             return 0
 
         tinput = data.get("tool_input", {})
