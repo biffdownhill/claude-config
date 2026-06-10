@@ -36,6 +36,13 @@ else
   exit 1
 fi
 
+if command -v python3 &>/dev/null; then
+  PY_VERSION=$(python3 --version 2>&1)
+  ok "python3 found: $PY_VERSION (required for the vault-recall hooks; needs 3.10+)"
+else
+  warn "python3 not found — the vault-recall hooks will no-op until it's installed."
+fi
+
 # ─── Existing content warning ─────────────────────────────────────────────────
 
 section "Checking ~/.claude/"

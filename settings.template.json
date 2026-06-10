@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh",
+    "padding": 2
+  },
+  "agent": "triage-orchestrator",
+  "skipAutoPermissionPrompt": true,
+  "agentPushNotifEnabled": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$HOME/.claude/scripts/vault-recall-build.py\"" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write|NotebookEdit|Bash|EnterPlanMode",
+        "hooks": [
+          { "type": "command", "command": "python3 \"$HOME/.claude/hooks/vault-recall.py\"" }
+        ]
+      }
+    ]
+  }
+}
