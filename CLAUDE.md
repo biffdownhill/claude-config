@@ -44,6 +44,12 @@ override these when they conflict.
 - Always be mindful of the code quality. Ensure that your code is correctly laid out in the relevant files/directories and aligned with the style of the rest of the code in the codebase.
 - Before running code, check the package manager of the project (e.g., yarn/bun/npm).
 
+### Git
+
+- **Never rewrite history unless I explicitly ask for it.** Do not `git commit --amend`, `git rebase`, `git reset` that discards commits, or force-push unless I have directly told you to amend, rebase, or go back on a commit. Rewriting loses history and leaves the branch diverged from its remote — which then needs a force-push to recover. Avoid putting the repo in that state.
+- **Default to additive commits.** To fix, extend, or correct an earlier commit — including review fixes — make a *new* commit on top. A linear, slightly messy history is fine; a rewritten one is not.
+- If a commit I've already made genuinely seems to need changing and I haven't asked for a rewrite, make a follow-up commit and tell me — let me decide whether to squash or amend later.
+
 ## Lessons learned
 
 <!-- Cross-project lessons: pitfalls encountered, approaches that worked -->
