@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "downhill-tools",
+  "owner": {
+    "name": "Edward Downhill",
+    "email": "biffdownhill@gmail.com"
+  },
+  "metadata": {
+    "description": "Personal Claude Code tooling. Currently ships the tiered triage orchestrator plugin."
+  },
+  "plugins": [
+    {
+      "name": "orchestrator",
+      "source": ".",
+      "description": "Tiered work orchestration: a primary agent that classifies every request into a tier and dispatches to bundled specialists (review, security, design, PM, vault). All machinery is opt-in per project via a .claude/orchestrator.json manifest."
+    }
+  ]
+}

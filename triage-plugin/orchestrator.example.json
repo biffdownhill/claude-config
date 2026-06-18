@@ -1,0 +1,6 @@
+{
+  "pm": "github-pm",
+  "vault": "vault-manager",
+  "reviewers": ["code-reviewer", "design-reviewer", "codex-reviewer"],
+  "security": "security-auditor"
+}
