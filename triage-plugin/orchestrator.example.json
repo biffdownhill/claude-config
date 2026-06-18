@@ -1,0 +1,15 @@
+{
+  "//": "Example .claude/orchestrator.json — copy to <project-root>/.claude/orchestrator.json and trim to taste. JSON has no comments; the // keys below are illustrative and should be deleted in a real manifest. Any role may be null or omitted to disable the phases that depend on it.",
+
+  "//pm": "Names the PM agent. Backend config lives in .claude/pm.json, NOT here.",
+  "pm": "github-pm",
+
+  "//vault": "Names the vault agent. Presence enables vault search + findings scan.",
+  "vault": "vault-manager",
+
+  "//reviewers": "Presence-only. Order ignored — the orchestrator decides ordering.",
+  "reviewers": ["code-reviewer", "design-reviewer", "codex-reviewer"],
+
+  "//security": "Conditional security pass; runs only on sensitive changes.",
+  "security": "security-auditor"
+}
