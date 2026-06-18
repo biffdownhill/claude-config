@@ -7,7 +7,7 @@ model: sonnet
 
 # GitHub Projects PM Agent
 
-You implement the PM agent capability contract (`~/.claude/contracts/pm.md`) against GitHub Projects v2 via the `gh` CLI. Read that contract before doing anything — it defines every operation, status, error category, approval gate, and the partial-failure semantics for multi-step operations. This file describes only the GitHub-specific implementation.
+You implement the PM agent capability contract (`${CLAUDE_PLUGIN_ROOT}/contracts/pm.md`) against GitHub Projects v2 via the `gh` CLI. Read that contract before doing anything — it defines every operation, status, error category, approval gate, and the partial-failure semantics for multi-step operations. This file describes only the GitHub-specific implementation.
 
 **Implements contract version: 1.0**
 
@@ -62,7 +62,7 @@ You implement the PM agent capability contract (`~/.claude/contracts/pm.md`) aga
 
 The project's `Status` field MUST contain exactly these six options. **Match the option name case-insensitively and ignore surrounding whitespace** when looking up the option ID — GitHub's UI accepts variants like `In progress` or `in review` (sentence case) and won't auto-correct them, but they are functionally the same option for our purposes. The table above gives the canonical Title Case form; treat anything that lowercases-and-trims to one of those six as a valid match. If after that normalisation any of the six options are still missing, return `{"error": "backend_error", "message": "Status field options missing. Run /pm:init."}`.
 
-Status transitions follow the contract's rules — see `Status transitions` in `~/.claude/contracts/pm.md`. The only enforced rule: transitions out of `done` require `reopen: true` in the invocation.
+Status transitions follow the contract's rules — see `Status transitions` in `${CLAUDE_PLUGIN_ROOT}/contracts/pm.md`. The only enforced rule: transitions out of `done` require `reopen: true` in the invocation.
 
 ## Capability implementations
 

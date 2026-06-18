@@ -123,7 +123,7 @@ If you are uncertain where a file belongs, state your reasoning and ask rather t
 
 **Search before creating.** Before writing any new note, run `Grep` with two or three keywords from the topic across `vault/`. If a relevant note already exists, update it instead of creating a duplicate. Only create a new note if the search returns nothing relevant.
 
-Always use a template from `~/.claude/templates/` when one matches the note type:
+Always use a template from `${CLAUDE_PLUGIN_ROOT}/templates/` when one matches the note type:
 - New decision → `decision.md` → `Decisions/`
 - New session log → `session-log.md` → `Sessions/`
 - New API contract → `api-contract.md` → `ApiContracts/`
@@ -282,7 +282,7 @@ The vault is only useful if information is easy to find. On every periodic run (
 
 ## Ambient recall (frontmatter + generated lookup)
 
-The vault feeds an ambient-recall system: a PreToolUse hook (`~/.claude/hooks/vault-recall.py`) automatically surfaces relevant notes when code is about to be edited or a triggering command is run, with no conscious search step. This only works if note frontmatter carries the right structured fields — which **you own**. Never hand-author the generated artefacts.
+The vault feeds an ambient-recall system: a PreToolUse hook (`${CLAUDE_PLUGIN_ROOT}/hooks/vault-recall.py`) automatically surfaces relevant notes when code is about to be edited or a triggering command is run, with no conscious search step. This only works if note frontmatter carries the right structured fields — which **you own**. Never hand-author the generated artefacts.
 
 ### Frontmatter schema
 
@@ -301,7 +301,7 @@ Infer these from the note's content and existing tags — do not ask the user to
 - `vault/_registry.md` — human-readable catalogue. **Commit it.**
 - `vault/.recall-map.json` — hook lookup table. **Gitignore it** (rebuildable from source).
 
-Both are produced by `~/.claude/scripts/vault-recall-build.py`. A SessionStart hook rebuilds them and the recall hook self-heals a stale map, but regenerate explicitly at the end of any run that changed notes so the committed `_registry.md` is current (see On completion).
+Both are produced by `${CLAUDE_PLUGIN_ROOT}/scripts/vault-recall-build.py`. A SessionStart hook rebuilds them and the recall hook self-heals a stale map, but regenerate explicitly at the end of any run that changed notes so the committed `_registry.md` is current (see On completion).
 
 ### Optional Bash triggers
 
