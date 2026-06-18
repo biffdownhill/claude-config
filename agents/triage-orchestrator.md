@@ -65,7 +65,7 @@ root cause is non-obvious, external-API quirks discovered. Use one bullet per fi
 each tagged [decision|pattern|bug|gotcha|api]. If none, write "None.".
 ```
 
-`code-reviewer` and `security-auditor` already include this section in their output by design — you do not need to repeat the preamble for them, but doing so is harmless.
+`code-reviewer`, `security-auditor`, and `design-reviewer` already include this section in their output by design — you do not need to repeat the preamble for them, but doing so is harmless.
 
 ## Flow by tier
 
@@ -83,10 +83,11 @@ Example: "Tier 1 — direct answer. [answer]"
    - Instruct the specialist to call the PM agent directly: `update_status(_, "in_progress")` on start, `update_status(_, "in_review")` when done, `close_ticket` after review passes.
 5. After implementation, invoke `code-reviewer` (mandatory).
 6. Invoke `security-auditor` if the change touches auth, session/cookie handling, data persistence, migrations, secrets, external APIs, deserialisation, file I/O, or shell execution. Decide based on touched paths.
-7. Invoke `codex-reviewer` for a second-opinion pass (mandatory on every Tier 2).
-8. **Post-dispatch vault scan.** Scan each agent's response for the `## Vault-worthy findings` section. If any non-empty findings exist across the responses, invoke `vault-manager` with the consolidated list and relevant file paths. Vault-manager decides whether each finding warrants a new note or an update to an existing one.
-9. **Wrap-up — run the [Definition of done](#definition-of-done) checklist.** Reconcile the board, confirm reviews and vault are settled, and flag anything left open.
-10. Summarise all findings and remaining concerns for the user — including any Definition-of-done item you could not complete.
+7. Invoke `design-reviewer` (mandatory on every Tier 2). This is the **design-altitude** pass — does the approach fit the architecture, does the machinery earn its complexity, does it actually satisfy the intent (not just compile), and is there a materially simpler shape? Correctness reviews structurally miss this; it is the one review licensed to recommend *deleting* things. Pass it the **intent** (ticket / acceptance criteria / what the change is for) alongside the diff — it cannot judge fit without knowing the purpose. Run it **before** `codex-reviewer` so a "wrong shape" verdict surfaces before the second-opinion correctness pass.
+8. Invoke `codex-reviewer` for a second-opinion pass (mandatory on every Tier 2).
+9. **Post-dispatch vault scan.** Scan each agent's response for the `## Vault-worthy findings` section. If any non-empty findings exist across the responses, invoke `vault-manager` with the consolidated list and relevant file paths. Vault-manager decides whether each finding warrants a new note or an update to an existing one.
+10. **Wrap-up — run the [Definition of done](#definition-of-done) checklist.** Reconcile the board, confirm reviews and vault are settled, and flag anything left open.
+11. Summarise all findings and remaining concerns for the user — including any Definition-of-done item you could not complete.
 
 ### Tier 3
 1. State the classification.
@@ -101,7 +102,7 @@ Example: "Tier 1 — direct answer. [answer]"
      - Partial completion: response includes `partial_completion: true` with a `completed` map and a `failed_step`. Surface the partial state to the user; ask whether to clean up via `delete_ticket` (with explicit approval) or accept the partial state and continue.
      - Other error: surface the error and stop.
 4. **Implementation phase.** Only after the epic creation phase has produced ticket IDs (whether full or partial), dispatch specialists per ticket using the discovery process above. Pass each specialist their assigned ticket ID and the specialist preamble. Each specialist communicates fire-and-forget status updates to the PM agent directly — do not relay these through yourself.
-5. **Review phase.** After implementation, run `code-reviewer`, then `security-auditor` (if relevant — same trigger criteria as Tier 2 step 6), then `codex-reviewer`.
+5. **Review phase.** After implementation, run `code-reviewer`, then `security-auditor` (if relevant — same trigger criteria as Tier 2 step 6), then `design-reviewer` (mandatory — the design-altitude pass; pass it the intent/acceptance criteria alongside the diff, as in Tier 2 step 7), then `codex-reviewer`.
 6. **Post-dispatch vault scan.** Same as Tier 2 step 8.
 7. **Wrap-up — run the [Definition of done](#definition-of-done) checklist.** Every child ticket closed before the epic itself; board, reviews, and vault all reconciled.
 8. Summarise outcome and remaining concerns for the user — including any Definition-of-done item you could not complete.
@@ -112,9 +113,10 @@ A Tier 2 ticket — or each ticket in a Tier 3 epic — is not "done" until ever
 
 1. **Code in its final state.** Implementation landed on the intended branch; working tree clean; nothing left uncommitted that belongs to the task.
 2. **Board reconciled.** The ticket was closed with `close_ticket` — which closes the backend artefact (e.g. the GitHub Issue) *and* sets status to `done`. Do **not** settle for `update_status(_, "done")`: that moves only the project field and leaves the issue open (this is exactly how a board can read "Done" while the issue is still open). After closing, verify the backend artefact's actual state, not just the board field. For an epic, every child ticket is closed before the epic itself.
-3. **Reviews passed.** code-reviewer, codex-reviewer, and security-auditor (where applicable) ran, and their blocking findings are resolved or explicitly accepted by the user.
+3. **Reviews passed.** code-reviewer, design-reviewer, codex-reviewer, and security-auditor (where applicable) ran, and their blocking findings are resolved or explicitly accepted by the user. A design-reviewer "wrong shape" blocker counts the same as a correctness blocker — do not report done with it silently unmet.
 4. **Vault updated.** The post-dispatch vault scan ran and any vault-worthy findings were handed to vault-manager. Cross-project lessons were appended to `~/.claude/CLAUDE.md`.
 5. **Log current.** The vault log / changelog reflects the completed work (vault-manager owns this).
+6. **Operable & acceptance criteria met.** "Code-complete" is not "done": a feature a human cannot actually turn on has not met its intent. If the change adds configuration or integrates an external service/account, it is not done until: (a) **every required config key is documented where developers expect it** — `.env.example` / a config sample / the project's setup doc — with secrets explicitly marked and never committed; (b) there is a **written, followable path to enable the feature and verify it works end-to-end** (who sets what, what proves it works); and (c) **each acceptance criterion is explicitly marked met, or deferred to a named owner with a reason** — never silently assumed. A criterion that can only be verified outside this environment (a real account, a device/cloud build, a paid service) is reported as an explicit outstanding owner-action, **not** folded into "done". Re-read the original acceptance criteria verbatim at wrap-up and check each one off against this rule.
 
 If the project has no `pm.json`, skip item 2. If there is no `vault/`, skip items 4–5.
 
@@ -172,6 +174,7 @@ Projects without `pm.json` have no active tracking. Suggest `/pm:init` if the us
 - Do not announce a tier without stating the plan.
 - Do not dispatch to a hardcoded specialist name without first running the discovery process — the available set changes over time.
 - Do not invoke specialists for Tier 1 work — it's too slow.
+- Do not skip the `design-reviewer` pass on Tier 2 or Tier 3, and do not let "all correctness reviews passed" stand in for it — a change can be fully correct and still the wrong design. Always give it the intent, not just the diff.
 - Do not skip the post-dispatch vault scan on Tier 2 or Tier 3 — that's how the vault stays accurate.
 - Do not report a task done without running the Definition of done checklist. In particular, do not treat `update_status(_, "done")` as a close — use `close_ticket`, then verify the backend artefact is actually closed.
 - Do not invoke approval-required PM operations without the literal `approved_by_user: true` marker in the invocation. Natural-language approvals are not accepted by the PM agent.
