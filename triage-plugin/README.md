@@ -37,59 +37,69 @@ project via a small manifest the orchestrator reads at runtime.
 
 ## Install / enable
 
-Plugins are installed from a **marketplace**. For a personal setup shared with a
-friend, the simplest marketplace is this repo (or any directory) containing a
-`.claude-plugin/marketplace.json` that lists the plugin.
+Plugins are installed from a **marketplace**. This plugin ships its own
+marketplace manifest at `triage-plugin/.claude-plugin/marketplace.json` (the
+marketplace is named `downhill-tools` and lists one plugin, `orchestrator`), so
+there's nothing to author — you just point Claude Code at the directory.
 
-### 1. Make a local marketplace
+### 1. Add the marketplace and install the plugin
 
-If your dotfiles repo doesn't already have one, add `.claude-plugin/marketplace.json`
-at the repo root (sibling to `triage-plugin/`):
-
-```json
-{
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "downhill-tools",
-  "owner": { "name": "Edward Downhill", "email": "biffdownhill@gmail.com" },
-  "plugins": [
-    { "name": "triage-orchestrator", "source": "./triage-plugin" }
-  ]
-}
-```
-
-### 2. Add the marketplace and install the plugin
+Replace `<repo-root>` with the path to your clone of this repo (the directory
+that contains `triage-plugin/`):
 
 ```
-/plugin marketplace add /Users/edwarddownhill/.claude        # local path to the repo
-/plugin install triage-orchestrator@downhill-tools
+/plugin marketplace add <repo-root>/triage-plugin     # local path to the plugin dir
+/plugin install orchestrator@downhill-tools
 ```
 
 A friend installs the same way from their clone:
 
 ```
-/plugin marketplace add /path/to/their/clone
-/plugin install triage-orchestrator@downhill-tools
+/plugin marketplace add /path/to/their/clone/triage-plugin
+/plugin install orchestrator@downhill-tools
 ```
 
-Or, if the repo is on GitHub:
+Or, if the repo is on GitHub (the marketplace lives in the `triage-plugin`
+subdirectory):
 
 ```
 /plugin marketplace add <github-user>/<repo>
-/plugin install triage-orchestrator@downhill-tools
+/plugin install orchestrator@downhill-tools
 ```
 
-### 3. The plugin makes itself the default agent
+### 2. Make the orchestrator the default agent
 
-The plugin's `settings.json` sets `{ "agent": "triage-orchestrator" }`, so once
-enabled the orchestrator becomes the default main-thread agent globally. No
-manual `settings.json` edit is needed.
+The plugin's bundled `settings.json` sets `{ "agent": "triage-orchestrator" }`,
+so once enabled the orchestrator is offered as the default main-thread agent.
 
-> **Migrating off the standalone setup.** This repo also carries a top-level
-> `agents/`, `hooks/`, and `scripts/` plus a machine-local `settings.json` that
-> wired the orchestrator the old way. Those are intentionally left in place so
-> nothing breaks mid-migration. Once the plugin is installed and verified, you
-> can drop `"agent"` and the two hook entries from your `~/.claude/settings.json`
-> — the plugin supplies all three. Verify first, cut over second.
+> **Cutover is a manual owner-action, not automatic.** If your user-level
+> `~/.claude/settings.json` already pins an `"agent"` key (e.g. from the
+> standalone setup below), that key **wins** over the plugin's bundled one. To
+> hand control to the plugin you must **remove the `"agent"` key (and the two
+> standalone vault-recall hook entries) from your `~/.claude/settings.json`**.
+> Until you do, the standalone agent — not the plugin's manifest-aware one — is
+> what answers.
+
+### 3. Verify the plugin is the one answering — *before* deleting anything
+
+The repo also carries a top-level `agents/`, `hooks/`, and `scripts/` plus a
+machine-local `settings.json` that wired the orchestrator the *old* (standalone)
+way. They are intentionally left in place so nothing breaks mid-migration. **Do
+not delete them until you've confirmed the plugin is live:**
+
+1. Run `/plugin` (or `/plugin marketplace list`) and confirm `orchestrator` shows
+   as **installed and enabled** under the `downhill-tools` marketplace.
+2. Confirm the **plugin's** agent is the active default, not the standalone copy.
+   The plugin orchestrator is **manifest-aware**: on a project with **no**
+   `.claude/orchestrator.json`, a Tier 1 question stays silent (acts like plain
+   Claude), and the **first Tier 2+** request prompts once to opt in. If instead
+   you still see orchestration behaviour wired from `~/.claude/settings.json`
+   (e.g. an `"agent"` key still pinned), the standalone copy is winning — do the
+   cutover in step 2 first.
+3. Only once the plugin is confirmed live and the `~/.claude/settings.json`
+   `"agent"`/hook entries are removed should you delete the standalone
+   top-level `agents/`, `hooks/`, and `scripts/`. **Verify first, cut over
+   second, delete last.**
 
 ## The manifest: `.claude/orchestrator.json`
 
