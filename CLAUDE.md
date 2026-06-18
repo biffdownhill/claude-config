@@ -37,6 +37,7 @@ override these when they conflict.
 - Always write using British English, NOT US English unless explicitly told otherwise.
 - Plan before implementing on anything non-trivial — surface tradeoffs and decisions, don't hide them.
 - Keep me in the loop on irreversible actions; otherwise just proceed.
+- When a 📓 vault note surfaces in tool output, read the referenced note before proceeding — it's flagging prior context worth knowing.
 
 ### Coding
 
