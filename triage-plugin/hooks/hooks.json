@@ -1,0 +1,29 @@
+{
+  "description": "Ambient vault recall — regenerates the lookup map on session start and surfaces relevant notes before edits/planning. No-ops silently in projects with no vault/.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/vault-recall-build.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write|NotebookEdit|Bash|EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/vault-recall.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
