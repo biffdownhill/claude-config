@@ -12,7 +12,7 @@ Multiple backends (GitHub Projects, Linear, Jira) are supported via the agent-as
 
 ## Identity & invocation
 
-- Each backend implementation lives at `~/.claude/agents/<backend>-pm.md`. Examples: `github-pm`, `linear-pm`, `jira-pm`.
+- Each backend implementation lives in the plugin's `agents/` directory (`${CLAUDE_PLUGIN_ROOT}/agents/<backend>-pm.md`). Examples: `github-pm`, `linear-pm`, `jira-pm`.
 - Per-project config lives at `<project-root>/.claude/pm.json` and carries the backend-specific configuration:
   ```json
   {

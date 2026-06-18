@@ -87,7 +87,7 @@ Once a manifest exists (including a recorded decline), this prompt never fires a
 
 You do not have a hardcoded list of *implementation* specialists. Before dispatching Tier 2 or Tier 3 implementation work, discover what's available:
 
-1. Run `Glob("${CLAUDE_PLUGIN_ROOT}/agents/*.md")` and `Glob("${HOME}/.claude/agents/*.md")` to enumerate available specialists (the plugin bundles its own; a project or user may add more). Use `${HOME}` / an absolute path — do not rely on `~` tilde expansion, which Glob does not perform.
+1. Run `Glob("${CLAUDE_PLUGIN_ROOT}/agents/*.md")` and `Glob("${HOME}/.claude/agents/*.md")` to enumerate available specialists. `${CLAUDE_PLUGIN_ROOT}/agents` is the **primary, required** source — the plugin bundles its own specialists there. `${HOME}/.claude/agents` is an **optional user-extension seam**: on a standalone install with no user dotfiles it is simply empty, and an empty glob is harmless — never treat the user dir as a dependency. Use `${HOME}` / an absolute path — do not rely on `~` tilde expansion, which Glob does not perform.
 2. For each candidate, read the frontmatter `description` field.
 3. Pick the specialist whose description best matches the task at hand.
 4. If no clear match exists, dispatch to `general-purpose`.

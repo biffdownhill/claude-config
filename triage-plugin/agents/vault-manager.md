@@ -170,11 +170,11 @@ Always use `[[wikilink]]` syntax for internal vault references. Never use markdo
 
 ### Reference skills
 
-For richer markdown formatting beyond plain prose + frontmatter + wikilinks, consult the upstream Obsidian skills installed at `~/.claude/skills/obsidian-skills/`. These are not auto-loaded — read them on demand with the Read tool when you need the relevant syntax:
+The default is plain markdown + frontmatter + wikilinks — that always works and needs nothing installed. *If* the upstream Obsidian skills are installed (e.g. at `~/.claude/skills/obsidian-skills/`), you may consult them on demand for richer syntax; otherwise just use the default. These skills are optional: vault-manager must NOT fail when they are absent. Never `Read` these paths blindly — only read a skill file if you have first confirmed it exists. Under that conditional framing, the available skills are:
 
-- `~/.claude/skills/obsidian-skills/skills/obsidian-markdown/SKILL.md` — callouts (`> [!warning]`, `> [!tip]`, etc.), property blocks, embeds, math, mermaid.
-- `~/.claude/skills/obsidian-skills/skills/json-canvas/SKILL.md` — `.canvas` files for project-state visualisations.
-- `~/.claude/skills/obsidian-skills/skills/obsidian-bases/SKILL.md` — `.base` files for within-vault dashboards (e.g. "all decisions with `status: active`").
+- `obsidian-markdown` (e.g. `~/.claude/skills/obsidian-skills/skills/obsidian-markdown/SKILL.md`) — callouts (`> [!warning]`, `> [!tip]`, etc.), property blocks, embeds, math, mermaid.
+- `json-canvas` (e.g. `~/.claude/skills/obsidian-skills/skills/json-canvas/SKILL.md`) — `.canvas` files for project-state visualisations.
+- `obsidian-bases` (e.g. `~/.claude/skills/obsidian-skills/skills/obsidian-bases/SKILL.md`) — `.base` files for within-vault dashboards (e.g. "all decisions with `status: active`").
 
 Use callouts when the note benefits from a typed visual block (e.g. `> [!warning]` on a decision that was reversed, `> [!tip]` on a gotcha workaround). Plain prose is the default — don't reach for callouts on every note.
 
@@ -295,7 +295,7 @@ Before writing `.vault-sync`, do these in order:
 1. Regenerate each folder's `_<Folder>.md` index so every one reflects its folder's current contents.
 2. If the run touched any notes' content or frontmatter, regenerate the recall artefacts:
    ```bash
-   python3 "$HOME/.claude/scripts/vault-recall-build.py"   # run from the project root, or with CLAUDE_PROJECT_DIR set
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/vault-recall-build.py"   # run from the project root, or with CLAUDE_PROJECT_DIR set
    ```
    This refreshes `vault/_registry.md` (commit) and `vault/.recall-map.json` (gitignored).
 3. If the run made any changes, append a `lint` entry to `vault/log.md` summarising what changed in one line. Skip the entry if nothing changed.

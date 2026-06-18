@@ -78,34 +78,12 @@ subdirectory):
 The plugin's bundled `settings.json` sets `{ "agent": "triage-orchestrator" }`,
 so once enabled the orchestrator is offered as the default main-thread agent.
 
-> **Cutover is a manual owner-action, not automatic.** If your user-level
-> `~/.claude/settings.json` already pins an `"agent"` key (e.g. from the
-> standalone setup below), that key **wins** over the plugin's bundled one. To
-> hand control to the plugin you must **remove the `"agent"` key (and the two
-> standalone vault-recall hook entries) from your `~/.claude/settings.json`**.
-> Until you do, the standalone agent — not the plugin's manifest-aware one — is
-> what answers.
-
-### 3. Verify the plugin is the one answering — *before* deleting anything
-
-The repo also carries a top-level `agents/`, `hooks/`, and `scripts/` plus a
-machine-local `settings.json` that wired the orchestrator the *old* (standalone)
-way. They are intentionally left in place so nothing breaks mid-migration. **Do
-not delete them until you've confirmed the plugin is live:**
-
-1. Run `/plugin` (or `/plugin marketplace list`) and confirm `orchestrator` shows
-   as **installed and enabled** under the `downhill-tools` marketplace.
-2. Confirm the **plugin's** agent is the active default, not the standalone copy.
-   The plugin orchestrator is **manifest-aware**: on a project with **no**
-   `.claude/orchestrator.json`, a Tier 1 question stays silent (acts like plain
-   Claude), and the **first Tier 2+** request prompts once to opt in. If instead
-   you still see orchestration behaviour wired from `~/.claude/settings.json`
-   (e.g. an `"agent"` key still pinned), the standalone copy is winning — do the
-   cutover in step 2 first.
-3. Only once the plugin is confirmed live and the `~/.claude/settings.json`
-   `"agent"`/hook entries are removed should you delete the standalone
-   top-level `agents/`, `hooks/`, and `scripts/`. **Verify first, cut over
-   second, delete last.**
+A fresh install needs no cutover — once the plugin is enabled, its bundled
+settings take effect. If you previously ran a *standalone* copy of these files in
+`~/.claude`, remove any pinned `"agent"` key and the standalone vault-recall hook
+entries from your user `~/.claude/settings.json`; a user-level `"agent"` wins over
+the plugin's bundled one, so the plugin's settings only take effect once those are
+gone.
 
 ## The manifest: `.claude/orchestrator.json`
 
