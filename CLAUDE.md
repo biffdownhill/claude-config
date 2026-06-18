@@ -55,6 +55,10 @@ override these when they conflict.
 
 <!-- Cross-project lessons: pitfalls encountered, approaches that worked -->
 <!-- e.g. "Drizzle schema changes require explicit migration generation step." -->
+<!-- HIGH BAR — default to NOT adding. Only record what a capable model gets wrong by
+     default, is stable (not doc-retrievable platform/tool trivia that would go stale here),
+     and isn't already covered. Every line loads into every session — it's a permanent
+     context cost. A tool fact belongs in the relevant doc/README, not here. -->
 
 - **"Code-complete" ≠ "done".** A feature that adds configuration or integrates an external
   service/account is not usable until the required config is documented where devs expect it
