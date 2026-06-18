@@ -37,7 +37,6 @@ override these when they conflict.
 - Always write using British English, NOT US English unless explicitly told otherwise.
 - Plan before implementing on anything non-trivial — surface tradeoffs and decisions, don't hide them.
 - Keep me in the loop on irreversible actions; otherwise just proceed.
-- When a 📓 vault note surfaces in tool output, read the referenced note before proceeding — it's flagging prior context worth knowing.
 
 ### Coding
 
@@ -55,10 +54,6 @@ override these when they conflict.
 
 <!-- Cross-project lessons: pitfalls encountered, approaches that worked -->
 <!-- e.g. "Drizzle schema changes require explicit migration generation step." -->
-<!-- HIGH BAR — default to NOT adding. Only record what a capable model gets wrong by
-     default, is stable (not doc-retrievable platform/tool trivia that would go stale here),
-     and isn't already covered. Every line loads into every session — it's a permanent
-     context cost. A tool fact belongs in the relevant doc/README, not here. -->
 
 - **"Code-complete" ≠ "done".** A feature that adds configuration or integrates an external
   service/account is not usable until the required config is documented where devs expect it
@@ -81,23 +76,6 @@ override these when they conflict.
   tooling that needs deps present — e.g. `npx expo install` requires the `expo`
   module to detect the SDK. Also copy/recreate gitignored local config the task
   needs (e.g. `.claude/pm.json`) into the worktree.
-- **bun gotchas (from the ShelfLife npm→bun migration):**
-  - bun ≥1.2 writes a **text** `bun.lock` (lockfileVersion 1), not the old binary
-    `bun.lockb`. Don't expect a `.lockb`. Railway Nixpacks needs **≥1.36.0** to detect
-    the text format (older Nixpacks only read `bun.lockb`); EAS Build and
-    `oven-sh/setup-bun` detect it fine.
-  - `bun test` runs bun's **native** test runner and bypasses the `"test"` package.json
-    script — use `bun run test` to invoke vitest/jest. Any script whose name collides
-    with a bun builtin needs `bun run`, not bare `bun`.
-  - bun **does not run dependency postinstall scripts** unless the package is listed in
-    `"trustedDependencies"`. After `bun install`, check the "Blocked N postinstall"
-    output and trust only deps a CI/runtime step actually exercises (e.g. a NAPI binding
-    a linter loads); leave the rest blocked if they have a JS fallback.
-  - EAS Build and Railway Nixpacks auto-detect the package manager from the lockfile —
-    deleting `package-lock.json` and committing `bun.lock` is enough; no config flag
-    needed. The `packageManager` field is a secondary signal.
-  - In CI, keep `actions/setup-node` (for the Node version pin some tooling resolves
-    against) **alongside** `oven-sh/setup-bun` — bun runs the JS but doesn't replace Node.
 - **Expo/RN runtime config & environment switching (from ShelfLife #27 app-architecture):**
   - No mechanism reliably relaunches the **OS process** cross-platform: `expo-updates`
     `reloadAsync`, `react-native-restart`, and `DevSettings.reload()` all reload the JS
@@ -138,8 +116,7 @@ override these when they conflict.
   (enabled+bundled ⇒ key present) and skips the inverse (config present for a
   NOT-bundled env ⇒ error) returns a misleading green on a config that dies at
   startup. When a `superRefine`/validator has present-and-absent invariants, the
-  verifier must check both arms. (ShelfLife `verify-posthog.ts`, #9 — note
-  `verify-sentry.ts` still has the unmirrored inverse arm as a known follow-up.)
+  verifier must check both arms. (ShelfLife `verify-posthog.ts`, #9.)
 - **A source-of-truth DB write inside `Promise.allSettled` is silently lost under
   a durable-step runner (Inngest/queue worker).** When a settled write rejects,
   the rejection is logged but the surrounding step still *resolves* — the runner
