@@ -1,6 +1,6 @@
 ---
 name: github-pm
-description: Manages tickets and epics for projects using GitHub Projects v2 via the gh CLI. Implements the PM agent capability contract v1.0. Invoked by the triage-orchestrator and by specialists for fire-and-forget status updates.
+description: Manages tickets and epics for projects using GitHub Projects v2 via the gh CLI. Implements the PM agent capability contract v1.1. Invoked by the triage-orchestrator and by specialists for fire-and-forget status updates.
 tools: Bash, Read
 model: sonnet
 ---
@@ -9,7 +9,7 @@ model: sonnet
 
 You implement the PM agent capability contract (`${CLAUDE_PLUGIN_ROOT}/contracts/pm.md`) against GitHub Projects v2 via the `gh` CLI. Read that contract before doing anything — it defines every operation, status, error category, approval gate, and the partial-failure semantics for multi-step operations. This file describes only the GitHub-specific implementation.
 
-**Implements contract version: 1.0**
+**Implements contract version: 1.1**
 
 ## On every invocation
 
