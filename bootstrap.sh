@@ -38,9 +38,9 @@ fi
 
 if command -v python3 &>/dev/null; then
   PY_VERSION=$(python3 --version 2>&1)
-  ok "python3 found: $PY_VERSION (required for the vault-recall hooks; needs 3.10+)"
+  ok "python3 found: $PY_VERSION (required for the orchestrator plugin's vault-recall hooks; needs 3.10+)"
 else
-  warn "python3 not found — the vault-recall hooks will no-op until it's installed."
+  warn "python3 not found — the orchestrator plugin's vault-recall hooks will no-op until it's installed."
 fi
 
 # ─── Existing content warning ─────────────────────────────────────────────────
@@ -78,31 +78,24 @@ else
   warn "Make sure this repo was cloned into ~/.claude/ correctly."
 fi
 
-# ─── agents/ check ────────────────────────────────────────────────────────────
+# ─── Orchestrator plugin ──────────────────────────────────────────────────────
 
-section "Checking agents"
+section "Orchestrator plugin"
 
-AGENTS_DIR="$CLAUDE_DIR/agents"
-for agent in triage-orchestrator codex-reviewer vault-manager code-reviewer security-auditor github-pm; do
-  if [[ -f "$AGENTS_DIR/$agent.md" ]]; then
-    ok "Agent present: $agent"
-  else
-    warn "Agent missing: $agent.md — check your clone is complete."
-  fi
-done
+cat <<'PLUGIN'
 
-# ─── templates/ check ─────────────────────────────────────────────────────────
+  The triage-orchestrator, the specialist agents, the vault-recall hooks
+  (SessionStart + PreToolUse), and the /orchestrator:init command now live in
+  the orchestrator@downhill-tools plugin — they are no longer copied into
+  ~/.claude/. Install the plugin once per machine:
 
-section "Checking templates"
+    claude plugin marketplace add git@github.com:biffdownhill/downhill-tools.git
+    claude plugin install orchestrator@downhill-tools
 
-TEMPLATES_DIR="$CLAUDE_DIR/templates"
-for tmpl in decision session-log api-contract pattern bug gotcha; do
-  if [[ -f "$TEMPLATES_DIR/$tmpl.md" ]]; then
-    ok "Template present: $tmpl.md"
-  else
-    warn "Template missing: $tmpl.md — check your clone is complete."
-  fi
-done
+  (Alternatively, run the interactive installer from inside Claude Code:
+   /plugin install orchestrator@downhill-tools)
+
+PLUGIN
 
 # ─── Manual steps checklist ───────────────────────────────────────────────────
 
@@ -137,7 +130,7 @@ cat <<'CHECKLIST'
            cd ~/.claude
            git init
            git remote add origin <your-remote-url>
-           git add CLAUDE.md agents/ templates/ settings.template.json bootstrap.sh .gitignore
+           git add CLAUDE.md commands/ settings.template.json bootstrap.sh .gitignore README.md
            git commit -m "Initial claude-config"
            git push -u origin main
 
