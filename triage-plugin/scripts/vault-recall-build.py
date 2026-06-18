@@ -18,14 +18,24 @@ import json
 import os
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 
 def atomic_write(path: Path, content: str) -> None:
-    """Write via temp + os.replace so a concurrent reader never sees a partial file."""
-    tmp = path.parent / (path.name + ".tmp")
-    tmp.write_text(content, encoding="utf-8")
-    os.replace(tmp, path)
+    """Write via a unique temp file + os.replace so a concurrent reader never sees
+    a partial file, and concurrent rebuilds don't stomp each other's temp file."""
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=path.name + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def project_root() -> Path:
@@ -34,10 +44,29 @@ def project_root() -> Path:
                 or os.getcwd())
 
 
+def strip_inline_comment(val: str) -> str:
+    """Drop a trailing YAML inline comment (` #...`) from a scalar/inline-list
+    value, but never a `#` inside a quoted string. A comment requires whitespace
+    (or start-of-string) before the `#`; `a#b` is a literal, ` # x` is a comment.
+    Templates carry values like `areas: []  # coarse buckets` — without this the
+    literal `[]  # coarse buckets` poisons by_area / by_file_glob / _registry."""
+    in_single = in_double = False
+    for i, ch in enumerate(val):
+        if ch == "'" and not in_double:
+            in_single = not in_single
+        elif ch == '"' and not in_single:
+            in_double = not in_double
+        elif ch == "#" and not in_single and not in_double:
+            if i == 0 or val[i - 1] in " \t":
+                return val[:i].rstrip()
+    return val
+
+
 def parse_frontmatter(text: str) -> dict:
     """Minimal YAML-frontmatter parser. Handles `key: scalar` and
     `key: [a, "b c"]` flow lists. Good enough for our controlled schema;
-    deliberately not a full YAML implementation."""
+    deliberately not a full YAML implementation. Inline `# ...` comments on
+    value lines are stripped (outside quotes)."""
     if not text.startswith("---"):
         return {}
     m = re.search(r"\n---[ \t]*(?:\n|$)", text)   # line-anchored closing terminator
@@ -51,7 +80,7 @@ def parse_frontmatter(text: str) -> dict:
             continue
         stripped = line.strip()
         if stripped.startswith("- ") and pending_key:          # block-style list item
-            item = stripped[2:].strip().strip('"').strip("'").strip()
+            item = strip_inline_comment(stripped[2:].strip()).strip('"').strip("'").strip()
             if item:
                 if not isinstance(fm.get(pending_key), list):
                     fm[pending_key] = []
@@ -60,7 +89,7 @@ def parse_frontmatter(text: str) -> dict:
         if ":" not in line:
             continue
         key, _, val = line.partition(":")
-        key, val = key.strip(), val.strip()
+        key, val = key.strip(), strip_inline_comment(val.strip())
         if not key:
             continue
         pending_key = None
@@ -170,7 +199,12 @@ def main() -> int:
     trig = vault / ".recall-triggers.json"
     if trig.is_file():
         try:
-            bash_triggers = json.loads(trig.read_text(encoding="utf-8"))
+            loaded = json.loads(trig.read_text(encoding="utf-8"))
+            # Must be a list of dicts; drop anything malformed so the hook never
+            # iterates non-dict entries (which would raise AttributeError and
+            # silently suppress the whole hook).
+            if isinstance(loaded, list):
+                bash_triggers = [t for t in loaded if isinstance(t, dict)]
         except Exception:
             bash_triggers = []
 

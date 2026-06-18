@@ -37,39 +37,55 @@ def glob_match(path: str, pattern: str) -> bool:
     return re.fullmatch(rx, path) is not None
 
 
+def rebuild_map(vault: Path) -> None:
+    """Run the bundled builder to regenerate the map. The builder sits beside this
+    hook in the plugin layout (<plugin>/hooks/vault-recall.py ->
+    <plugin>/scripts/vault-recall-build.py), so parent.parent / "scripts" resolves
+    to it. A broken path is logged to stderr rather than swallowed — a silent miss
+    here is the bug this self-heal exists to avoid (a stale/dead map served forever)."""
+    builder = Path(__file__).resolve().parent.parent / "scripts" / "vault-recall-build.py"
+    if builder.is_file():
+        subprocess.run([sys.executable, str(builder), str(vault.parent)],
+                       timeout=10, capture_output=True)
+    else:
+        print(f"vault-recall: builder not found at {builder} — "
+              "recall map may be stale", file=sys.stderr)
+
+
 def fresh_map(vault: Path) -> dict | None:
     mp = vault / ".recall-map.json"
     if not mp.is_file():
         return None
     # Self-heal: rebuild if any note is newer than the map.
-    # The builder sits beside this hook in the plugin layout
-    # (<plugin>/hooks/vault-recall.py -> <plugin>/scripts/vault-recall-build.py),
-    # so parent.parent / "scripts" resolves to the bundled builder. A broken path
-    # is logged to stderr rather than swallowed — a silent miss here is the bug
-    # this whole self-heal exists to avoid (a stale map served forever).
     try:
         map_mtime = mp.stat().st_mtime
         stale = any(p.stat().st_mtime > map_mtime
                     for p in vault.rglob("*.md")
                     if not p.name.startswith("_") and p.name != "log.md")
         if stale:
-            builder = Path(__file__).resolve().parent.parent / "scripts" / "vault-recall-build.py"
-            if builder.is_file():
-                subprocess.run([sys.executable, str(builder), str(vault.parent)],
-                               timeout=10, capture_output=True)
-            else:
-                print(f"vault-recall: builder not found at {builder} — "
-                      "recall map may be stale", file=sys.stderr)
+            rebuild_map(vault)
     except Exception as e:
         print(f"vault-recall: self-heal rebuild failed: {e}", file=sys.stderr)
     try:
         return json.loads(mp.read_text(encoding="utf-8"))
     except Exception:
-        return None
+        # The map is present but malformed (corrupt/partial JSON). Don't silently
+        # disable recall for the session — rebuild once and re-read.
+        try:
+            rebuild_map(vault)
+            return json.loads(mp.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"vault-recall: rebuild after parse failure failed: {e}", file=sys.stderr)
+            return None
 
 
-def matches_for(tool: str, tinput: dict, root: Path, rmap: dict) -> list:
+def matches_for(tool: str, tinput: dict, root: Path, rmap: dict):
+    """Return (hits, log_target). `log_target` is a NON-SENSITIVE descriptor safe
+    to persist: a file path for edits, or the matched trigger pattern for Bash —
+    never the raw command string (which can carry secrets)."""
     hits, seen = [], set()
+    log_target = ""
+    matched_patterns: list[str] = []
 
     def add(entry):
         if entry["note"] not in seen:
@@ -79,26 +95,38 @@ def matches_for(tool: str, tinput: dict, root: Path, rmap: dict) -> list:
     if tool in ("Edit", "MultiEdit", "Write", "NotebookEdit"):
         fp = tinput.get("file_path") or tinput.get("path") or ""
         if not fp:
-            return []
+            return [], ""
         try:
             rel = Path(fp).resolve().relative_to(root.resolve()).as_posix()
         except Exception:
-            rel = fp
+            # Path is outside the project root (or unresolvable). Don't fall back
+            # to the raw unvalidated string as a glob operand — return no hits.
+            return [], ""
+        log_target = rel
         for g in rmap.get("by_file_glob", []):
             if glob_match(rel, g["glob"]):
                 add(g)
     elif tool == "Bash":
         cmd = (tinput.get("command") or "").lower()
-        for trig in rmap.get("bash_triggers", []):
+        triggers = rmap.get("bash_triggers", [])
+        if not isinstance(triggers, list):                     # guard malformed map
+            triggers = []
+        for trig in triggers:
+            if not isinstance(trig, dict):                     # guard malformed entries
+                continue
             pat = str(trig.get("pattern", "")).lower()
             if pat and pat in cmd:
+                matched_patterns.append(pat)
                 for entry in rmap.get("by_area", {}).get(trig.get("area", ""), []):
                     add(entry)
-    return hits[:MAX_NOTES]
+        # Log only the matched trigger pattern(s) — never the raw command.
+        log_target = "bash-trigger:" + ",".join(matched_patterns)
+    return hits[:MAX_NOTES], log_target
 
 
 def log_injection(vault: Path, tool: str, target: str, hits: list) -> None:
-    """Append one line per injection for the periodic precision check. Best-effort."""
+    """Append one line per injection for the periodic precision check. Best-effort.
+    `target` must already be a non-sensitive descriptor (see matches_for)."""
     try:
         rec = {"ts": datetime.datetime.now().isoformat(timespec="seconds"),
                "tool": tool, "target": target[:200], "notes": [h["note"] for h in hits]}
@@ -133,12 +161,11 @@ def main() -> int:
             return 0
 
         tinput = data.get("tool_input", {})
-        hits = matches_for(tool, tinput, root, rmap)
+        hits, log_target = matches_for(tool, tinput, root, rmap)
         if not hits:
             return 0
 
-        target = tinput.get("file_path") or tinput.get("path") or tinput.get("command") or ""
-        log_injection(vault, tool, target, hits)
+        log_injection(vault, tool, log_target, hits)
 
         parts = ["📓 Relevant vault note(s) — check before proceeding so a past mistake isn't repeated:"]
         for h in hits:
