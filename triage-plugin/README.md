@@ -96,9 +96,9 @@ manual `settings.json` edit is needed.
 A project opts into orchestration phases with a flat role→agent map at
 `<project-root>/.claude/orchestrator.json`. The orchestrator reads it with the
 Read tool — plugins can't enforce a nested config schema, so the file is plain
-data, not validated config. The schema is documented in
-[`orchestrator.schema.json`](./orchestrator.schema.json); a copy-and-trim
-example is in [`orchestrator.example.json`](./orchestrator.example.json).
+data, not validated config. A ready-to-copy example lives in
+[`orchestrator.example.json`](./orchestrator.example.json); the fields and their
+rules are documented below.
 
 ```json
 {
@@ -108,6 +108,20 @@ example is in [`orchestrator.example.json`](./orchestrator.example.json).
   "security": "security-auditor"
 }
 ```
+
+Fields:
+
+- **`pm`** — names the PM agent for ticket/epic tracking (e.g. `"github-pm"`).
+  `null`/omitted disables all PM phases.
+- **`vault`** — names the vault agent (e.g. `"vault-manager"`). `null`/omitted
+  disables the active vault search, the vault-worthy-findings scan, and
+  vault-manager enrichment. (It does **not** disable the ambient `📓` recall hook,
+  which runs whenever the plugin is enabled.)
+- **`reviewers`** — presence-only list of review agents to run after
+  implementation. An empty list or omitted disables all review passes.
+- **`security`** — names the security review agent (e.g. `"security-auditor"`).
+  Runs only on sensitive changes (auth, secrets, persistence, migrations,
+  external APIs, deserialisation, file I/O, shell). `null`/omitted disables it.
 
 Rules:
 
