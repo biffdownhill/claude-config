@@ -2,7 +2,7 @@
 
 This document defines the interface every "product manager" (PM) agent must implement. Backends are swappable: GitHub Projects, Linear, Jira — the rest of the orchestrator system does not care which is active, as long as the agent honours this contract.
 
-**Contract version: 1.0**
+**Contract version: 1.1**
 
 ## Why this exists
 
@@ -13,10 +13,10 @@ Multiple backends (GitHub Projects, Linear, Jira) are supported via the agent-as
 ## Identity & invocation
 
 - Each backend implementation lives at `~/.claude/agents/<backend>-pm.md`. Examples: `github-pm`, `linear-pm`, `jira-pm`.
-- Per-project config lives at `<project-root>/.claude/pm.json` and names the active backend:
+- Per-project config lives at `<project-root>/.claude/pm.json` and carries the backend-specific configuration:
   ```json
   {
-    "pm_agent": "github-pm",
+    "pm_agent": "github-pm",  // PM-agent self-identification only; NOT the caller-dispatch source
     "github": {
       "owner": "<your-github-username>",
       "repo": "<repo-name>",
@@ -25,7 +25,8 @@ Multiple backends (GitHub Projects, Linear, Jira) are supported via the agent-as
   }
   ```
 - Backend-specific configuration sits under a key matching the backend name (e.g. `github`, `linear`).
-- Callers (orchestrator, specialists) read `pm_agent` from `pm.json` and pass that string as `subagent_type` when invoking via the Task tool.
+- Callers (orchestrator, specialists) source the PM agent name for `subagent_type` from `.claude/orchestrator.json`'s `"pm"` value, and pass that string when invoking via the Task tool. They do **not** read it from `pm.json`. The orchestrator's only interest in `pm.json` is its *presence* — the gate for running PM phases at all.
+- `pm_agent` in `pm.json` is the PM agent's own backend self-identification only (e.g. for a backend to confirm which implementation it is). It is **not** the caller-dispatch source; the manifest's `"pm"` value is authoritative for dispatch.
 - A PM agent MUST read its backend-specific config block on every invocation. If config is missing or malformed, the agent MUST return a `config_missing` error rather than guessing.
 - Projects without a `.claude/pm.json` have no active PM agent. The orchestrator handles such projects without ticket tracking and may suggest running `/pm:init` to set one up.
 
@@ -138,7 +139,7 @@ Read operations and single-write operations do not need this treatment — they 
 - **Specialist → PM agent.** Invoked for fire-and-forget operations only — typically `update_status`, `assign`, `add_blocker`, `close_ticket`. Specialists MUST NOT invoke approval-required operations; if scope changes, they surface the change to the orchestrator.
 - **PM agent → other agents.** The PM agent is a leaf in the call graph. It MUST NOT invoke other agents.
 
-## Out of scope for v1.0
+## Out of scope
 
 The following are deliberately deferred to a later contract version. Implementations MAY support them internally but MUST NOT expose them through this interface:
 
@@ -155,3 +156,8 @@ This contract is versioned. Every backend implementation MUST declare the contra
 1. A new version number (semver: breaking changes bump the major version).
 2. Updated implementations for every existing backend before the new contract is marked active.
 3. A migration note in this document describing what changed and how to update an existing backend.
+
+### Changelog
+
+- **v1.1** — Caller dispatch agent name moved from `pm.json` `pm_agent` to `.claude/orchestrator.json` `pm`; `pm_agent` retained for PM-agent self-identification. Backends need no code change: the field is unchanged, only its consumer is. Callers (orchestrator, specialists) that previously read `pm_agent` to determine `subagent_type` MUST now read the manifest's `"pm"` value instead.
+- **v1.0** — Initial contract.

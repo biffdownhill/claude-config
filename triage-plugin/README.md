@@ -1,10 +1,16 @@
-# triage-orchestrator
+# orchestrator
 
 A Claude Code plugin that makes a tiered **triage orchestrator** your default
 main-thread agent. It classifies every request into a tier and dispatches the
 right amount of ceremony — answer trivial things directly, hand real work to
 bundled specialists, and run review / project-tracking / knowledge-vault phases
 **only when a project opts into them**.
+
+> **Plugin name vs agent name.** The installable **plugin** is named
+> `orchestrator` — it namespaces the plugin's commands (e.g. `/orchestrator:init`).
+> The **agent** it ships is named `triage-orchestrator` — that's the value used in
+> `settings.json` `"agent"` and passed as `subagent_type` when dispatching to it.
+> They are not the same string; don't conflate them.
 
 The design goal is restraint: mature repos should not get vault, PM, or review
 machinery forced on them. Everything beyond plain classification is opt-in per
