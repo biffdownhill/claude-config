@@ -55,6 +55,22 @@ override these when they conflict.
 <!-- Cross-project lessons: pitfalls encountered, approaches that worked -->
 <!-- e.g. "Drizzle schema changes require explicit migration generation step." -->
 
+- **"Code-complete" ≠ "done".** A feature that adds configuration or integrates an external
+  service/account is not usable until the required config is documented where devs expect it
+  (`.env.example` / sample / setup doc, with secrets flagged and never committed) AND there is
+  a written path to enable and verify it end-to-end. Trace **every** acceptance criterion to
+  met / deferred-to-named-owner explicitly — a criterion only verifiable outside the dev
+  environment (real account, device/cloud build, paid service) is an outstanding owner-action,
+  never silently "done". (ShelfLife Sentry #8: shipped the SDK wiring with no DSN/org/token
+  configured and no `.env.example` entries — reported "done" while not connected to any account.)
+- A `WeakSet` cycle-guard in a recursive scrubber / deep-clone / transformer leaks on
+  **shared (diamond) references**, not just true cycles: the second path to an
+  already-seen sub-object returns the *original* node (e.g. unredacted secrets, or a
+  pre-transform value). Use a `WeakMap<original, transformedCopy>` and register the new
+  copy **before** recursing into its children — that resolves cycles to the in-progress
+  copy and shared refs to the same redacted/cloned copy on every path, in one mechanism.
+  A "does not throw" test passes either way, so assert on the *output* of a shared-ref
+  input. (Found in the ShelfLife Sentry PII scrubber, #8.)
 - A fresh `git worktree` does not copy gitignored files (`node_modules/`, `.env`,
   `.claude/`). Run `npm ci` (or the project's install) in a new worktree before any
   tooling that needs deps present — e.g. `npx expo install` requires the `expo`
@@ -100,6 +116,43 @@ override these when they conflict.
   - An unstable inline callback in a React `useMemo`/`useCallback` dependency array
     silently busts the memo with **no type or lint signal** — wrap callbacks passed as memo
     deps in `useCallback` with stable deps (e.g. a `useState` setter).
+- **Commit an idempotency flag only AFTER the side-effecting init succeeds.** A
+  `start()`/`init()` with an early-return guard that sets `started = true` (or
+  assigns the client) *before* the SDK constructor and first call can throw will
+  wedge the service permanently on a synchronous throw: `started` is true but the
+  client is null, so every later `start()` early-returns, the client is never
+  built, the first event never fires, and only `teardown()` recovers. Build into
+  locals, commit `started`/`client` only on the success path, and roll back +
+  rethrow in a `catch` (matching the bootstrap's rollback-and-rethrow contract).
+  A "does not throw" test passes either way — assert that after a thrown init the
+  flag is false and a *retry* succeeds. (Found by codex in the ShelfLife PostHog
+  module, #9.)
+- **An offline pre-build config verifier must mirror BOTH arms of a symmetric
+  schema invariant.** If the runtime schema enforces "config present iff
+  (enabled AND bundled)", a verifier that checks only the positive arm
+  (enabled+bundled ⇒ key present) and skips the inverse (config present for a
+  NOT-bundled env ⇒ error) returns a misleading green on a config that dies at
+  startup. When a `superRefine`/validator has present-and-absent invariants, the
+  verifier must check both arms. (ShelfLife `verify-posthog.ts`, #9 — note
+  `verify-sentry.ts` still has the unmirrored inverse arm as a known follow-up.)
+- **A source-of-truth DB write inside `Promise.allSettled` is silently lost under
+  a durable-step runner (Inngest/queue worker).** When a settled write rejects,
+  the rejection is logged but the surrounding step still *resolves* — the runner
+  memoises the step as done and never retries, so the durable write is dropped
+  while disposable side effects "succeeded". Only put genuinely disposable emits
+  (analytics, telemetry) in `allSettled`; await the durable write separately and
+  **throw** so the step fails and the runner retries it. A related rule for the
+  same class of consumer: a step that loads a row by id *after* a state-transition
+  event must re-assert the triggering state in the load query (`.eq('state', …)`)
+  — event emission and step execution are separated in time, so a race can change
+  the row first; a non-matching row is a graceful logged no-op, not an error.
+  (Machined article-quality scoring, Phase A.)
+- **`z.coerce.number()` is fail-OPEN.** It coerces `false`→0, `null`→0, `''`→0, so
+  a malformed upstream value (e.g. an LLM judge returning a non-numeric score)
+  passes validation and is silently scored `0` instead of being rejected. When `0`
+  is itself a meaningful value, use strict `z.number()` (or a regex-guarded string
+  parse) so a bad response fails closed and degrades to an explicit error path
+  rather than a plausible-looking zero. (Machined holistic judge, Phase A.)
 
 ## Frameworks evaluated
 
