@@ -1,5 +1,5 @@
 {
-  "name": "triage-orchestrator",
+  "name": "orchestrator",
   "version": "1.0.0",
   "description": "Tiered work orchestration for Claude Code. A primary agent that classifies every request into a tier and dispatches to bundled specialists (review, security, design, PM, vault). All machinery (code review, project tracking, knowledge vault, ambient recall) is opt-in per project via a .claude/orchestrator.json manifest, so mature repos are left alone.",
   "author": {
