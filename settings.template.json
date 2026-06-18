@@ -8,6 +8,7 @@
     "command": "bash ~/.claude/statusline-command.sh",
     "padding": 2
   },
+  "agent": "triage-orchestrator",
   "skipAutoPermissionPrompt": true,
   "agentPushNotifEnabled": true
 }
