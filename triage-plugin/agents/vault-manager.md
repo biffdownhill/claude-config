@@ -88,7 +88,7 @@ Never create a flat vault (all files at root). Always use subfolders from day on
 
 When the vault grows beyond the default, use these folder names so structure stays consistent across projects:
 
-- `Sessions/` — session logs (auto-generated stubs and enriched summaries)
+- `Sessions/` — session logs
 - `Decisions/` — decision notes (a choice was made between alternatives)
 - `Bugs/` — bug postmortems (a defect was found, root-caused, and recorded)
 - `Patterns/` — reusable patterns established for the project
@@ -147,7 +147,7 @@ The categories overlap, especially for security and reliability findings. Use th
 3. **`api-contract.md`** → a request/response shape was defined or agreed with an external system.
 4. **`pattern.md`** → a way of doing things established that should be followed elsewhere. Forward-looking (*"here's how to do X going forward"*), not backward-looking (*"here's what was broken"*).
 5. **`decision.md`** → a choice between alternatives was made. Has at least one rejected option that was tempting. If the only "alternatives" are *"do nothing"* or *"do the thing you obviously had to do"*, it's not a decision note.
-6. **`session-log.md`** → chronological summary of a session. Usually written by the auto-logger; you only write one manually if no logger fired.
+6. **`session-log.md`** → chronological summary of a session. Write one when a session produced something worth recording.
 
 If a single finding genuinely fits two categories, pick the one a future reader would search for first. Bug postmortems and patterns are often paired — record the bug in `Bugs/`, then create a separate pattern note in `Patterns/` for "how to avoid this kind of issue going forward", and `[[wikilink]]` them together.
 
@@ -178,36 +178,9 @@ For richer markdown formatting beyond plain prose + frontmatter + wikilinks, con
 
 Use callouts when the note benefits from a typed visual block (e.g. `> [!warning]` on a decision that was reversed, `> [!tip]` on a gotcha workaround). Plain prose is the default — don't reach for callouts on every note.
 
-## Enriching auto-logger session stubs
+## Session logs
 
-A separate auto-session-logger writes a stub file to `vault/Sessions/` at the start of each session, in this shape:
-
-```yaml
----
-date: YYYY-MM-DD HH:MM UTC
-session_id: <uuid>
-cwd: <path>
-transcript: <path>
-tags: [session]
----
-
-## Summary
-Summary pending — transcript at <transcript path>
-
-## Decisions
-
-## Follow-ups
-```
-
-When you encounter a stub with `Summary pending` in its body, enrich it in place rather than creating a new note:
-
-1. Read the transcript file referenced in the frontmatter (its path is absolute).
-2. Replace the `Summary pending — transcript at ...` line with a one-paragraph summary of what happened in the session: what was attempted, what was decided, what changed.
-3. Populate `## Decisions` with `[[wikilinks]]` to any decision notes the session produced (or that you create as part of enrichment).
-4. Populate `## Follow-ups` with any open threads the session left behind.
-5. Preserve the existing frontmatter — do not rewrite `session_id`, `cwd`, `transcript`, or `date`.
-
-The session-log template at `~/.claude/templates/session-log.md` mirrors this shape so notes created manually stay consistent with auto-logger output.
+When a session produces something worth recording, write a session log to `vault/Sessions/` using the `session-log.md` template at `${CLAUDE_PLUGIN_ROOT}/templates/session-log.md`. Capture a one-paragraph summary of what happened (what was attempted, what was decided, what changed), `[[wikilinks]]` to any decision notes the session produced, and any open follow-ups. Match the frontmatter and structure of existing session logs in the vault.
 
 ## Folder indexes and chronological log
 

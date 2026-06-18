@@ -7,7 +7,7 @@ tags: [session]
 ---
 
 ## Summary
-<!-- One paragraph: what happened in this session, why. Replace "Summary pending" stub from auto-logger. -->
+<!-- One paragraph: what happened in this session, why. -->
 
 ## Decisions
 <!-- [[wikilinks]] to any decision notes created or updated. -->
