@@ -18,9 +18,9 @@ Multiple backends (GitHub Projects, Linear, Jira) are supported via the agent-as
   {
     "pm_agent": "github-pm",
     "github": {
-      "owner": "edwarddownhill",
-      "repo": "TennisBooker",
-      "project_number": 3
+      "owner": "<your-github-username>",
+      "repo": "<repo-name>",
+      "project_number": 1
     }
   }
   ```
